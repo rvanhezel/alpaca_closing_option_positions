@@ -9,7 +9,6 @@ import pandas as pd
 import os
 import shutil
 from src.api.alpaca_api import AlpacaAPI    
-from src.risk_manager import RiskManager
 from src.trading_session_manager import TradingSessionManager
 
 

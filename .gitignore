@@ -1,7 +1,6 @@
 .env
 notes.txt
-tests.py
-/test*.py
+test*.py
 output/
 trading.db
 __pycache__/

@@ -1,10 +1,7 @@
-from twelvedata import TDClient
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import OrderSide, TimeInForce, OrderType, TakeProfitRequest, StopLossRequest
+from alpaca.trading.enums import OrderSide, TimeInForce, OrderType
 import logging
 import os
-import time
-import random
 from src.configuration import Configuration
 import os
 

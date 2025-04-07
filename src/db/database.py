@@ -3,7 +3,6 @@ import os
 import logging
 import pandas as pd
 from typing import Union
-from ibapi.order import Order
 import time
 
 
@@ -125,7 +124,7 @@ class Database:
             logging.error(f"Error initializing database: {str(e)}")
             raise
 
-    def add_order(self, order: Union[Order, list[Order]]):
+    def add_order(self, order):
         """Add a trading order to the database"""
         if not isinstance(order, list):
             order = [order]
