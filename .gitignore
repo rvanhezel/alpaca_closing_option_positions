@@ -1,0 +1,11 @@
+.env
+notes.txt
+tests.py
+/test*.py
+output/
+trading.db
+__pycache__/
+.vscode/*
+.vscode/
+venv/
+
