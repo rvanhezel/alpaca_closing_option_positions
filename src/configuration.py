@@ -21,7 +21,7 @@ class Configuration:
         self.trading_end_time = self.config.get('Trading', 'trading_end_time')
         self.eod_exit_time = self.config.get('Trading', 'eod_exit_time')
         self.timezone = self.config.get('Trading', 'timezone')
-        self.strategy = self.config.get('Trading', 'strategy')
+        self.close_strategy = self.config.get('Trading', 'close_strategy')
         self.paper_trading = self._check_paper_trading(self.config.getboolean('Trading', 'paper_trading'))
 
     def _configure_log(self, log_level: str):
