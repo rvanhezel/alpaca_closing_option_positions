@@ -37,7 +37,7 @@ source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 pip install -r requirements.txt
 ```
 
-4.Set up environment variables for Alpaca and Twelve Data API's:
+4.Set up environment variables for Alpaca:
 
 ```bash
 # Create a .env file in the project root directory with:
