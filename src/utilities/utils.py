@@ -10,6 +10,57 @@ import os
 import datetime
 
 
+def quantity_buckets(position_quantity: int, bucket_quantity: int, risk_approach: str = "risk_on") -> list:
+    """
+    Split a position quantity into a specified number of buckets using either risk-on or risk-off rounding logic.
+    
+    Risk-on: Rounds down at each split, leaving more as runners (aggressive)
+    Risk-off: Rounds up at each split, leaving less as runners (conservative)
+    
+    Args:
+        position_quantity (int): Total number of contracts to split
+        bucket_quantity (int): Number of buckets to split the position into (e.g., 3 for thirds, 4 for quarters)
+        risk_approach (str): Either "risk-on" or "risk-off" to determine rounding direction
+        
+    Returns:
+        list: List of integers representing the split quantities
+        
+    Examples:
+        >>> quantity_buckets(5, 3, "risk-on")
+        [1, 1, 3]  # Split into 3 buckets, risk-on approach
+        
+        >>> quantity_buckets(5, 3, "risk-off")
+        [2, 2, 1]  # Split into 3 buckets, risk-off approach
+        
+        >>> quantity_buckets(10, 4, "risk-on")
+        [2, 2, 2, 4]  # Split into 4 buckets, risk-on approach
+
+        >>> quantity_buckets(10, 4, "risk-off")
+        [3, 3, 3, 1]  # Split into 4 buckets, risk-off approach
+    """
+    if position_quantity <= 0 or bucket_quantity <= 0:
+        raise ValueError("Position quantity and bucket quantity must be greater than 0")
+        
+    if position_quantity == 1:
+        return [1]
+        
+    base_size = position_quantity // bucket_quantity
+    remainder = position_quantity % bucket_quantity
+    
+    result = [base_size] * bucket_quantity
+    
+    if remainder > 0:
+        if risk_approach.lower() == "risk_on":
+            result[-1] += remainder
+        elif risk_approach.lower() == "risk_off":
+            for i in range(remainder):
+                result[i] += 1
+            result[-1] = position_quantity - sum(result[:-1])
+        else:
+            raise ValueError("risk_approach must be either 'risk_on' or 'risk_off'")
+    
+    return result
+
 def get_third_friday(year, month, timezone):
     """Get the third Friday of a given month"""
     first_day = pd.Timestamp(year, month, 1, tz=timezone)

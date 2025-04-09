@@ -8,3 +8,5 @@ __pycache__/
 .vscode/
 venv/
 *.ipynb
+main - dev.py
+notes.md

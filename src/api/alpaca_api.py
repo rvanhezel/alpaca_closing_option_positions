@@ -1,4 +1,6 @@
-from typing import Callable
+from alpaca.data.live.option import OptionDataStream
+from alpaca.data.historical.option import OptionHistoricalDataClient
+from typing import Callable, List
 import threading
 import time
 from typing import Union, Optional, Dict, Any
@@ -11,12 +13,13 @@ from alpaca.trading.requests import (
     ClosePositionRequest, 
     GetOptionContractsRequest,
     LimitOrderRequest,
-    StopOrderRequest
+    StopOrderRequest,
+    GetAssetsRequest
 )
 from alpaca.trading.enums import OrderSide, QueryOrderStatus, OrderType
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import OrderSide, TimeInForce, OrderType
-from alpaca.trading.models import OptionContract, OptionContractsResponse
+from alpaca.trading.enums import OrderSide, TimeInForce, OrderType, AssetClass
+from alpaca.trading.models import OptionContract, OptionContractsResponse, Asset
 import logging
 import os
 from src.configuration import Configuration
@@ -31,7 +34,12 @@ class AlpacaAPI:
     
     Reference: https://alpaca.markets/sdks/python/api_reference/trading_api.html
     """
-    __slots__ = ("client_api", "trading_stream")
+    __slots__ = (
+        "trading_api", 
+        "trading_stream", 
+        "option_md_stream", 
+        "option_md_api"
+        )
 
     def __init__(self) -> None:
         """
@@ -41,33 +49,39 @@ class AlpacaAPI:
         logging.getLogger('websockets').setLevel(logging.WARNING)
         logging.getLogger('alpaca').setLevel(logging.WARNING)
 
-        self.client_api = None
+        self.trading_api = None
         self.trading_stream = None
+        self.option_md_stream = None
+        self.option_md_api = None
 
     def connect(self, config: Configuration) -> None:
-        self._connect_api(config)
-        self._connect_websocket(config)
+        self._connect_trading_api(config)
+        self._connect_trading_websocket(config)
+        self._connect_option_md_api(config)
+        self._connect_option_md_websocket(config)
 
-    def _connect_api(self, config: Configuration) -> None:
+        time.sleep(3) #important to wait for the websockets to connect!
+
+    def _connect_trading_api(self, config: Configuration) -> None:
         """
         Connect to the Alpaca API using the provided configuration.
 
         :param config: Configuration object containing API keys and settings.
         """
         try:
-            self.client_api = TradingClient(
+            self.trading_api = TradingClient(
                 api_key=os.environ.get('ALPACA_KEY', 'WRONG-KEY'),
                 secret_key=os.environ.get('ALPACA_SECRET', 'WRONG-KEY'),
                 paper=config.paper_trading,
             )
 
-            logging.info("Successfully connected to Alpaca client.")
+            logging.info("Successfully connected to Alpaca trading client.")
 
         except Exception as err:
             logging.error(f"Failed to connect to Alpaca API: {err}")
             raise
 
-    def _connect_websocket(self, config: Configuration) -> None:
+    def _connect_trading_websocket(self, config: Configuration) -> None:
         """
         Connect to the Alpaca websocket.
 
@@ -85,11 +99,57 @@ class AlpacaAPI:
 
             time.sleep(3) #important to wait for the websocket to connect!
 
-            logging.info("Successfully connected to Alpaca websocket.")
+            logging.info("Successfully connected to Alpaca trading websocket.")
 
         except Exception as err:
             logging.error(f"Failed to connect to Alpaca websocket: {err}")
             raise
+
+    def _connect_option_md_websocket(self, config: Configuration) -> None:
+        """
+        Connect to the Alpaca option market data websocket.
+
+        :param config: Configuration object containing API keys and settings.
+        """
+        try:
+            self.option_md_stream = OptionDataStream(
+                api_key=os.environ.get('ALPACA_KEY', 'WRONG-KEY'),
+                secret_key=os.environ.get('ALPACA_SECRET', 'WRONG-KEY')
+            )
+
+            thread = threading.Thread(target=self.option_md_stream.run, daemon=True)
+            thread.start()
+
+            time.sleep(3) #important to wait for the websocket to connect!
+
+            logging.info("Successfully connected to Alpaca option market data websocket.")
+
+        except Exception as err:
+            logging.error(f"Failed to connect to Alpaca option market data websocket: {err}")
+            raise
+
+    def _connect_option_md_api(self, config: Configuration) -> None:
+        """
+        Connect to the Alpaca option market data API.
+
+        :param config: Configuration object containing API keys and settings.
+        """
+        try:
+            self.option_md_api = OptionHistoricalDataClient(
+                api_key=os.environ.get('ALPACA_KEY', 'WRONG-KEY'),
+                secret_key=os.environ.get('ALPACA_SECRET', 'WRONG-KEY')
+            )
+
+            logging.info("Successfully connected to Alpaca option market data API.")
+
+        except Exception as err:
+            logging.error(f"Failed to connect to Alpaca option market data API: {err}")
+            raise
+
+    def subscribe_option_md_updates(self, update_handler: Callable, symbols: List[str]) -> None:
+        logging.info(f"Subscribing to option market data streaming updates for {symbols}")
+        self.option_md_stream.subscribe_quotes(update_handler, *symbols) 
+        self.option_md_stream.subscribe_trades(update_handler, *symbols)
 
     def subscribe_trade_updates(self, update_handler: Callable) -> None:
         """
@@ -97,10 +157,11 @@ class AlpacaAPI:
 
         :param update_handler: Callable function that will be called with trade update data.
         """
+        logging.info("Subscribing to trade updates from the Alpaca trading websocket.")
         self.trading_stream.subscribe_trade_updates(update_handler)
 
     def account_details(self) -> dict:
-        return self.client_api.get_account()
+        return self.trading_api.get_account()
     
     def options_approved_level(self) -> int:
         return self.account_details().options_approved_level
@@ -110,7 +171,7 @@ class AlpacaAPI:
 
     def get_orders(self, signal: Signal = None, status: str = "all"):
         if not signal and not status:
-            return self.client_api.get_orders()
+            return self.trading_api.get_orders()
         
         if signal:
             signal = OrderSide.SELL if signal == Signal.SELL else OrderSide.BUY
@@ -130,12 +191,13 @@ class AlpacaAPI:
             side=signal if signal else None
         )
 
-        return self.client_api.get_orders(filter=request_params)
+        return self.trading_api.get_orders(filter=request_params)
     
     def get_order_by_id(self, order_id: Union[UUID, str], _options: Optional[GetOrderByIdRequest] = None):
-        return self.client_api.get_order_by_id(order_id, _options)
+        return self.trading_api.get_order_by_id(order_id, _options)
     
     def place_market_order(self, symbol: str, qty: float, side: Signal, tif = TimeInForce.DAY) -> None:
+        logging.info(f"Placing market order for {symbol} with quantity {qty} and side {side}")
         side = OrderSide.BUY if side == Signal.BUY else OrderSide.SELL
 
         market_order_data = MarketOrderRequest(
@@ -145,108 +207,51 @@ class AlpacaAPI:
                             time_in_force=tif
                             )
 
-        return self.client_api.submit_order(order_data=market_order_data)
+        return self.trading_api.submit_order(order_data=market_order_data)
     
     def cancel_all_orders(self) -> list:
         """Returns a list of cancelled orders"""
-        return self.client_api.cancel_orders()
+        return self.trading_api.cancel_orders()
     
     def cancel_order_by_id(self, order_id: Union[UUID, str]) -> None:
-        return self.client_api.cancel_order_by_id(order_id)
+        return self.trading_api.cancel_order_by_id(order_id)
 
     def get_all_positions(self) -> list:
         """Returns a list of all positions"""
-        return self.client_api.get_all_positions()
+        return self.trading_api.get_all_positions()
     
     def get_open_position_by_id(self, symbol_or_asset_id: Union[UUID, str]):
-        return self.client_api.get_open_position(symbol_or_asset_id)
+        return self.trading_api.get_open_position(symbol_or_asset_id)
 
     def close_all_positions(self, cancel_orders: bool = True) -> list:
         """Returns a list of closed positions"""
-        return self.client_api.close_all_positions(cancel_orders=cancel_orders)
+        return self.trading_api.close_all_positions(cancel_orders=cancel_orders)
     
-    def close_position_by_id(self, symbol_or_asset_id: Union[UUID, str], close_options: Optional[ClosePositionRequest] = None):
-        return self.client_api.close_position(symbol_or_asset_id, close_options)
+    # def close_position_by_id(self, symbol_or_asset_id: Union[UUID, str], close_options: Optional[ClosePositionRequest] = None):
+    #     return self.client_api.close_position(symbol_or_asset_id, close_options)
     
-    def get_option_contracts(self, request: GetOptionContractsRequest) -> Union[OptionContractsResponse, Dict[str, Any]]:
-        return self.client_api.get_option_contracts(request)
+    def close_position_by_id(self, symbol_or_asset_id: Union[UUID, str], qty: Optional[int] = None):
+        if qty:
+            close_options = ClosePositionRequest(qty=qty)
+            return self.trading_api.close_position(symbol_or_asset_id, close_options)
+        else:
+            return self.trading_api.close_position(symbol_or_asset_id)
     
     def get_option_contract_by_id(self, symbol_or_id: Union[UUID, str]) -> Union[OptionContract, Dict[str, Any]]:
-        return self.client_api.get_option_contract(symbol_or_id)
+        return self.trading_api.get_option_contract(symbol_or_id)
+    
+    def get_all_assets(self, filter: Optional[GetAssetsRequest] = None) -> Union[List[Asset], Dict[str, Any]]:
+        return self.trading_api.get_all_assets(filter)
+    
+    def get_us_options(self) -> List[Asset]:
+        return self.get_all_assets(filter=GetAssetsRequest(asset_class=AssetClass.US_OPTION))
+    
+    def get_option_contracts(self, symbols: List[str], expiry= None):
+        request = GetOptionContractsRequest(underlying_symbols=symbols, expiration_date=expiry)
+        return self.trading_api.get_option_contracts(request)
 
-    def place_option_order(self, 
-                          symbol: str, 
-                          qty: int, 
-                          side: Signal, 
-                          expiry: str, 
-                          strike: float, 
-                          right: str,
-                          order_type: OrderType = OrderType.MARKET,
-                          limit_price: Optional[float] = None,
-                          stop_price: Optional[float] = None,
-                          tif: TimeInForce = TimeInForce.DAY) -> Order:
-        """
-        Place an option order.
-        
-        Args:
-            symbol (str): The underlying symbol (e.g., 'AAPL')
-            qty (int): Number of contracts
-            side (Signal): BUY or SELL
-            expiry (str): Expiration date in YYYY-MM-DD format
-            strike (float): Strike price
-            right (str): 'C' for call or 'P' for put
-            order_type (OrderType): MARKET, LIMIT, or STOP
-            limit_price (float, optional): Required for limit orders
-            stop_price (float, optional): Required for stop orders
-            tif (TimeInForce): Time in force for the order
-            
-        Returns:
-            Order: The created order
-        """
-        side = OrderSide.BUY if side == Signal.BUY else OrderSide.SELL
-        
-        # Construct the option symbol
-        option_symbol = f"{symbol}{expiry.replace('-', '')}{right}{int(strike*1000):08d}"
-        
-        # Create the appropriate order request based on order type
-        if order_type == OrderType.MARKET:
-
-            order_data = MarketOrderRequest(
-                symbol=option_symbol,
-                qty=qty,
-                side=side,
-                time_in_force=tif
-            )
-        elif order_type == OrderType.LIMIT:
-
-            if limit_price is None:
-                raise ValueError("limit_price is required for limit orders")
-            
-            order_data = LimitOrderRequest(
-                symbol=option_symbol,
-                qty=qty,
-                side=side,
-                time_in_force=tif,
-                limit_price=limit_price
-            )
-
-        elif order_type == OrderType.STOP:
-
-            if stop_price is None:
-                raise ValueError("stop_price is required for stop orders")
-            
-            order_data = StopOrderRequest(
-                symbol=option_symbol,
-                qty=qty,
-                side=side,
-                time_in_force=tif,
-                stop_price=stop_price
-            )
-        else:
-            raise ValueError(f"Unsupported order type: {order_type}")
-        
-        return self.client_api.submit_order(order_data=order_data)
-
-
-
+    def close_websockets(self):
+        logging.info("Stopping and closing websockets")
+        self.trading_stream.stop()
+        self.option_md_stream.stop()
 
