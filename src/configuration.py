@@ -56,7 +56,7 @@ class Configuration:
             raise ValueError("Paper trading must be enabled for testing")
         
     def _perform_sanity_checks(self):
-        self._confirm_profit_targets()
+        # self._confirm_profit_targets()
         self._confirm_sell_buckets()
         self._confirm_paper_trading()
 

@@ -146,10 +146,10 @@ class AlpacaAPI:
             logging.error(f"Failed to connect to Alpaca option market data API: {err}")
             raise
 
-    def subscribe_option_md_updates(self, update_handler: Callable, symbols: List[str]) -> None:
+    def subscribe_option_md_updates(self, quotes_handler: Callable, trades_handler: Callable, symbols: List[str]) -> None:
         logging.info(f"Subscribing to option market data streaming updates for {symbols}")
-        self.option_md_stream.subscribe_quotes(update_handler, *symbols) 
-        self.option_md_stream.subscribe_trades(update_handler, *symbols)
+        self.option_md_stream.subscribe_quotes(quotes_handler, *symbols) 
+        self.option_md_stream.subscribe_trades(trades_handler, *symbols)
 
     def subscribe_trade_updates(self, update_handler: Callable) -> None:
         """
@@ -230,7 +230,7 @@ class AlpacaAPI:
     # def close_position_by_id(self, symbol_or_asset_id: Union[UUID, str], close_options: Optional[ClosePositionRequest] = None):
     #     return self.client_api.close_position(symbol_or_asset_id, close_options)
     
-    def close_position_by_id(self, symbol_or_asset_id: Union[UUID, str], qty: Optional[int] = None):
+    def close_position_by_id(self, symbol_or_asset_id: Union[UUID, str], qty):
         if qty:
             close_options = ClosePositionRequest(qty=qty)
             return self.trading_api.close_position(symbol_or_asset_id, close_options)
@@ -246,9 +246,8 @@ class AlpacaAPI:
     def get_us_options(self) -> List[Asset]:
         return self.get_all_assets(filter=GetAssetsRequest(asset_class=AssetClass.US_OPTION))
     
-    def get_option_contracts(self, symbols: List[str], expiry= None):
-        request = GetOptionContractsRequest(underlying_symbols=symbols, expiration_date=expiry)
-        return self.trading_api.get_option_contracts(request)
+    def get_option_contracts(self, filter: GetOptionContractsRequest) -> List[OptionContract]:
+        return self.trading_api.get_option_contracts(filter)
 
     def close_websockets(self):
         logging.info("Stopping and closing websockets")
