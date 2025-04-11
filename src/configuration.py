@@ -36,6 +36,10 @@ class Configuration:
 
         # Risk Management section
         self.expiry_sell_cutoff = int(self.config.get('Risk_Management', 'expiry_sell_cutoff'))
+
+        # API section
+        self.timeout = int(self.config.get('API', 'timeout'))
+
         self._perform_sanity_checks()
 
     def _confirm_profit_targets(self):
