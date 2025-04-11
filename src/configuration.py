@@ -31,6 +31,9 @@ class Configuration:
         self.instrument_id = self.config.get('Positions', 'instrument_id')
         self.starting_position_quantity = int(self.config.get('Positions', 'starting_position_quantity'))
 
+        # Market Data section
+        self.store_all_ticks = self.config.getboolean('Market_Data', 'store_all_ticks')
+
         self._perform_sanity_checks()
 
     def _confirm_profit_targets(self):
