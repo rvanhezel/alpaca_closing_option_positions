@@ -29,6 +29,8 @@ class ExecutionOrchestrator:
         self._quote_data = queue.Queue()
         self._trade_data = queue.Queue()
 
+        self.expiry_day = False
+
 
     def start(self):
         """Start the trading system"""
@@ -44,7 +46,7 @@ class ExecutionOrchestrator:
             self.api.connect(self.config)
 
             try:
-                self._trading_loop()
+                self._trading_session_loop()
 
             except Exception as e:
                 logging.error(f"Error in trading loop: {str(e)}")
@@ -64,7 +66,7 @@ class ExecutionOrchestrator:
             logging.info("Trading system shut down")
             
             
-    def _trading_loop(self):
+    def _trading_session_loop(self):
         """Main trading loop"""
         previous_day = pd.Timestamp.now(tz=self.config.timezone).date()
 
@@ -153,11 +155,11 @@ class ExecutionOrchestrator:
                 self.avg_entry_price = avg_entry_price
 
         ## Place sample order & wait for response
-        order = self.api.place_market_order(
-            self.config.instrument_id, 
-            self.config.starting_position_quantity, 
-            Signal.BUY)
-        self._wait_for_order_response(order.id, self.config.timeout)
+        # order = self.api.place_market_order(
+        #     self.config.instrument_id, 
+        #     self.config.starting_position_quantity, 
+        #     Signal.BUY)
+        # self._wait_for_order_response(order.id, self.config.timeout)
 
         # Get position from API
         # native_position = self.api.get_open_position_by_id(self.config.instrument_id)
@@ -180,6 +182,13 @@ class ExecutionOrchestrator:
         sell_quantity_buckets = quantity_buckets(int(native_position.qty), self.config.sell_buckets, self.config.close_strategy)
         logging.info(f"Sell quantity buckets: {sell_quantity_buckets}")
 
+        # Check expiry day
+        now = pd.Timestamp.now(tz=self.config.timezone)
+        expiry_date = self.api.get_option_contract_by_id(self.config.instrument_id).expiration_date
+        if now.date() == expiry_date:
+            logging.info(f"{self.config.instrument_id} is expiring today.")
+            self.expiry_day = True
+            
         # Handle existing positions_closed.csv
         closed_buckets = pd.DataFrame(columns = [
             "order_id",
@@ -188,7 +197,8 @@ class ExecutionOrchestrator:
             "bucket_qty", 
             "profit_target", 
             "fill_price", 
-            "timestamp"])
+            "timestamp",
+            "reason"])
         
         close_starting_idx = 0
         
@@ -231,6 +241,9 @@ class ExecutionOrchestrator:
                             latest_ticks = []
                             while not self._quote_data.empty():
                                 latest_ticks.append(self._quote_data.get_nowait())
+
+                            if not latest_ticks:
+                                continue
 
                             latest_tick_df = self._parse_tick_data(latest_ticks)
 
@@ -281,7 +294,8 @@ class ExecutionOrchestrator:
                                     cur_bucket_qty, 
                                     cur_profit_target,
                                     self._order_statuses[order.id].order.filled_avg_price,
-                                    pd.Timestamp.now(tz=self.config.timezone)]
+                                    pd.Timestamp.now(tz=self.config.timezone),
+                                    "profit_target"]
                                 closed_buckets.to_csv(os.path.join("output", "positions_closed.csv"), index=False)
 
                             else:
@@ -308,12 +322,43 @@ class ExecutionOrchestrator:
                                         cur_bucket_qty, 
                                         cur_profit_target,
                                         self._order_statuses[order.id].order.filled_avg_price,
-                                        pd.Timestamp.now(tz=self.config.timezone)]
+                                        pd.Timestamp.now(tz=self.config.timezone),
+                                        "profit_target"]
                                     closed_buckets.to_csv(os.path.join("output", "positions_closed.csv"), index=False)
 
                         else:
 
                             logging.debug(f"Latest option bid quote {latest_option_bid_price} < {cur_profit_target}")
+
+                            if self.expiry_day:
+                                
+                                logging.info(f"Expiry day. Checking if we should close positions")
+            
+                                now = pd.Timestamp.now(tz=self.config.timezone)
+                                expiry_sell_cutoff = self.trading_session_manager.trading_end - pd.Timedelta(minutes=self.config.expiry_sell_cutoff)
+
+                                if now >= expiry_sell_cutoff:
+
+                                    msg = f"Current time {now} >= expiry sell cutoff {expiry_sell_cutoff}."
+                                    msg += f" Closing position {native_position.symbol} with quantity {cur_bucket_qty}"
+                                    logging.info(msg)
+
+                                    order = self.api.close_position_by_id(native_position.symbol, str(cur_bucket_qty))
+                                    self._wait_for_order_response(order.id, self.config.timeout)
+
+                                    next_bucket = True
+
+                                    closed_buckets.loc[idx] = [
+                                        order.id, 
+                                        native_position.symbol,
+                                        self._order_statuses[order.id].order.status, 
+                                        cur_bucket_qty, 
+                                        cur_profit_target,
+                                        self._order_statuses[order.id].order.filled_avg_price,
+                                        pd.Timestamp.now(tz=self.config.timezone),
+                                        "expiry"]
+                                    closed_buckets.to_csv(os.path.join("output", "positions_closed.csv"), index=False)
+
                             logging.debug(f"Looping again...")
 
         except Exception as e:
