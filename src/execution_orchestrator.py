@@ -7,7 +7,6 @@ from datetime import datetime
 import logging
 from src.configuration import Configuration
 from src.utilities.enums import Signal
-from src.db.database import Database
 import pandas as pd
 import os
 import shutil
@@ -77,18 +76,15 @@ class ExecutionOrchestrator:
                 Logger(now.date()) # Create new log file for new day to avoid excessively large files
                 previous_day = now.date()
 
-            if not self.trading_session_manager.is_trading_day(now):
-                logging.warning("Not a trading day. Waiting...")
+            if self.trading_session_manager.is_trading_day(now) and self.trading_session_manager.is_trading_hours(now):
+
+                self._trading_execution()
+
+            else:
+
+                logging.warning("Outside trading schedule. Waiting...")
                 time.sleep(60)
-                continue
-                
-            if not self.trading_session_manager.is_trading_hours(now):
-                logging.warning("Outside trading hours. Waiting...")
-                self.portfolio_manager.clear_orders_statuses_positions()
-                time.sleep(60)
-                continue
             
-            self._trading_execution()
     
 
     def _save_config(self):
@@ -150,11 +146,11 @@ class ExecutionOrchestrator:
         time.sleep(3)   #Seems important to wait for the websocket to connect! 
                         #Not sure why this is needed over the pause in the api.connect()
 
-        # class NativePosition:
-        #     def __init__(self, instrument_id: str, qty: int, avg_entry_price: float):
-        #         self.instrument_id = instrument_id
-        #         self.qty = qty
-        #         self.avg_entry_price = avg_entry_price
+        class NativePosition:
+            def __init__(self, instrument_id: str, qty: int, avg_entry_price: float):
+                self.instrument_id = instrument_id
+                self.qty = qty
+                self.avg_entry_price = avg_entry_price
 
         ## Place sample order & wait for response
         order = self.api.place_market_order(
@@ -163,8 +159,9 @@ class ExecutionOrchestrator:
             Signal.BUY)
         self._wait_for_order_response(order.id, self.config.timeout)
 
-        native_position = self.api.get_open_position_by_id(self.config.instrument_id)
-        # native_position = NativePosition(cfg.instrument_id, 5, 10)
+        # Get position from API
+        # native_position = self.api.get_open_position_by_id(self.config.instrument_id)
+        native_position = NativePosition(self.config.instrument_id, self.config.starting_position_quantity, 10)
 
         if native_position is None:
             logging.error(f"No position found for {self.config.instrument_id}")

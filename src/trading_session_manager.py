@@ -97,6 +97,7 @@ class TradingSessionManager:
             logging.info(f"Current time: {now} - End of day approaching - Performing EOD checks")
             
             # Define EOD logic here
+            logging.info(f"Currently no EOD checks to perform")
 
             seconds_until_close = (market_close_time - now).total_seconds()
             logging.info(f"Sleeping for {seconds_until_close} seconds until market close")
