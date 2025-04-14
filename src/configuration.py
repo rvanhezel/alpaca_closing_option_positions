@@ -43,10 +43,6 @@ class Configuration:
 
         self._perform_sanity_checks()
 
-    def _confirm_profit_targets(self):
-        if sum(self.profit_targets) != 1:
-            raise ValueError("Profit targets must sum to 1")
-
     def _configure_log(self, log_level: str):
         if log_level == "Debug":
             return logging.DEBUG
@@ -66,13 +62,14 @@ class Configuration:
             raise ValueError("Paper trading must be enabled for testing")
         
     def _perform_sanity_checks(self):
-        # self._confirm_profit_targets()
         self._confirm_sell_buckets()
         self._confirm_paper_trading()
 
     def _confirm_sell_buckets(self):
-        if self.sell_buckets != len(self.profit_targets):
-            raise ValueError("Sell buckets must be equal to the number of profit targets")
+        if self.sell_buckets != len(self.profit_targets) + 1:
+            msg = f"Sell buckets must be equal to the number of profit targets - 1."
+            msg += f"The last bucket is used for runners."
+            raise ValueError(msg)
         
         
 
