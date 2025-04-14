@@ -13,6 +13,8 @@ import shutil
 from src.api.alpaca_api import AlpacaAPI    
 from src.trading_session_manager import TradingSessionManager
 from src.portfolio.portfolio_manager import PortfolioManager
+from src.mkt_data.mkt_data_state import MktDataState
+from src.strategys.take_profit_strategy import TakeProfitStrategy
 
 
 class ExecutionOrchestrator:
@@ -25,9 +27,7 @@ class ExecutionOrchestrator:
             cfg.trading_start_time,
             cfg.trading_end_time)
         self.portfolio_manager = PortfolioManager(cfg, self.api)
-        
-        self.market_data = pd.DataFrame()
-        self._quote_data = queue.Queue()
+        self.mkt_data_state = MktDataState(cfg)
 
         self.expiry_day = False
 
@@ -48,7 +48,7 @@ class ExecutionOrchestrator:
             self.api.connect(self.config)
             self.api.subscribe_trade_updates(self.portfolio_manager.update_order_status)
             self.api.subscribe_option_md_updates(
-                self._update_quote_data, 
+                self.mkt_data_state.update_quote_data, 
                 self.portfolio_manager.update_trade_data, 
                 [self.config.instrument_id]
                 )
@@ -97,8 +97,6 @@ class ExecutionOrchestrator:
 
                 logging.warning("Outside trading schedule. Waiting...")
                 time.sleep(60)
-            
-    
 
     def _save_config(self):
         """Save configuration file to outputs for audit purposes"""
@@ -113,23 +111,6 @@ class ExecutionOrchestrator:
         
         shutil.copy2('run.cfg', filepath)
         logging.info(f"Configuration saved to {filepath}")
-
-    def _save_market_data(self):
-        """Save data to CSV file"""
-        if not self.market_data.empty:
-            logging.info("Saving market data to CSV file...")
-
-            # Create output directory if it doesn't exist
-            output_dir = os.path.join(os.getcwd(), "output")
-            os.makedirs(output_dir, exist_ok=True)
-            
-            # Generate filename with timestamp
-            timestamp = datetime.now().strftime("%Y%m%d")
-            filename = f"market_data_{self.config.instrument_id}_{timestamp}.csv"
-            filepath = os.path.join(output_dir, filename)
-            
-            self.market_data.to_csv(filepath, index=True)
-            logging.info(f"Market data saved to {filepath}")
 
     def _trading_execution(self):
         """Execute trading logic"""
@@ -182,52 +163,27 @@ class ExecutionOrchestrator:
 
                 if cur_bucket_qty > 0:
 
-                    # next_bucket = False
-
+                    loop_counter = 0
                     while True:
 
                         if self.portfolio_manager.process_latest_order():
                             break
 
-                        # Handle tick data
-                        if self.config.store_all_ticks:
+                        self.mkt_data_state.update_state()
+                        loop_counter += 1
 
-                            latest_ticks = []
-                            while not self._quote_data.empty():
-                                latest_ticks.append(self._quote_data.get_nowait())
+                        if loop_counter % 1000 == 0:
+                            latest_quote = self.mkt_data_state.latest_quote()
 
-                            if not latest_ticks:
-                                continue
+                            msg = f"Using quote: timestamp: {latest_quote.name}, bid_price: {latest_quote.bid_price}"
+                            msg += f", target: {cur_profit_target}"
+                            logging.debug(msg)
 
-                            latest_tick_df = self._parse_tick_data(latest_ticks)
-
-                        else: 
-
-                            latest_quote = None
-                            while not self._quote_data.empty():
-                                latest_quote = self._quote_data.get_nowait()
-
-                            if not latest_quote:
-                                continue
-
-                            latest_tick_df = self._parse_tick_data(latest_quote)
-
-                        self.market_data = pd.concat([self.market_data, latest_tick_df])
-                        if self.market_data.shape[0] > 100:
-                            self._save_market_data()
-
-                        latest_quote = self.market_data.iloc[-1]
-
-                        msg = f"Using quote: timestamp: {latest_quote.name}, bid_price: {latest_quote.bid_price}"
-                        msg += f", target: {cur_profit_target}"
-                        logging.debug(msg)
-
-                        latest_option_bid_price = latest_quote.bid_price
+                        signal = TakeProfitStrategy.generate_signals(self.mkt_data_state, self.config, {'profit_target': cur_profit_target})
 
                         # Selling logic
-                        if latest_option_bid_price >= cur_profit_target and not self.portfolio_manager.latest_order_pending():
-                            
-                            logging.debug(f"Latest option quote {latest_option_bid_price} >= {cur_profit_target}")
+                        if signal == Signal.SELL and not self.portfolio_manager.latest_order_pending():
+                        
                             logging.debug(f"Closing position {native_position.symbol} with quantity {cur_bucket_qty}")
 
                             #close position
@@ -269,29 +225,4 @@ class ExecutionOrchestrator:
 
             logging.info("All positions closed. Terminating...")
 
-    def _parse_tick_data(self, latest_quote):
-        latest_quote = latest_quote if isinstance(latest_quote, list) else [latest_quote]
-        df = pd.DataFrame({
-            'datetime': [pd.to_datetime(tick.timestamp, format='%Y%m%d %H:%M:%S %Z') for tick in latest_quote],
-            'symbol': [tick.symbol for tick in latest_quote],
-            'bid_price': [tick.bid_price for tick in latest_quote],
-            'bid_size': [tick.bid_size for tick in latest_quote],
-            'bid_exchange': [tick.bid_exchange for tick in latest_quote],
-            'ask_price': [tick.ask_price for tick in latest_quote],
-            'ask_size': [tick.ask_size for tick in latest_quote],
-            'ask_exchange': [tick.ask_exchange for tick in latest_quote],
-            'conditions': [tick.conditions for tick in latest_quote],
-            'tape': [tick.tape for tick in latest_quote]
-        })
-        df.set_index('datetime', inplace=True)
-        df.sort_index(ascending=True, inplace=True)
-        df.index = df.index.tz_convert(self.config.timezone)
-        return df
-    
-    async def _update_quote_data(self, data):
-        """Update quote data from WS"""
-        # logging.debug(f"Quote data received from WS for {data.symbol} at {data.timestamp}")
-        self._quote_data.put(data)
-
-            
             

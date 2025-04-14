@@ -32,6 +32,7 @@ class Configuration:
         self.starting_position_quantity = int(self.config.get('Positions', 'starting_position_quantity'))
 
         # Market Data section
+        self.save_market_data = self.config.getboolean('Market_Data', 'save_market_data')
         self.store_all_ticks = self.config.getboolean('Market_Data', 'store_all_ticks')
 
         # Risk Management section
