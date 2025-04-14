@@ -3,11 +3,27 @@ import configparser
 import logging
 from datetime import datetime
 import pytz
+from typing import List
 
 
 class Configuration:
+    """
+    Configuration class for managing trading system settings.
+    
+    This class handles the loading and validation of configuration settings from a config file.
+    It provides access to various trading parameters and performs sanity checks on the configuration.
+    """
 
-    def __init__(self, path_to_config: str):
+    def __init__(self, path_to_config: str) -> None:
+        """
+        Initialize the Configuration object with settings from a config file.
+
+        Args:
+            path_to_config (str): Path to the configuration file.
+
+        Raises:
+            ValueError: If the configuration is invalid or sanity checks fail.
+        """
         self.config = configparser.ConfigParser()
         self.config.read(path_to_config)
 
@@ -43,7 +59,19 @@ class Configuration:
 
         self._perform_sanity_checks()
 
-    def _configure_log(self, log_level: str):
+    def _configure_log(self, log_level: str) -> int:
+        """
+        Convert string log level to logging module level.
+
+        Args:
+            log_level (str): String representation of log level (Debug, Info, Warning, Error)
+
+        Returns:
+            int: Corresponding logging module level constant
+
+        Raises:
+            ValueError: If log_level is not recognized
+        """
         if log_level == "Debug":
             return logging.DEBUG
         elif log_level == "Info":
@@ -55,17 +83,38 @@ class Configuration:
         else:
             raise ValueError("Log level not recognized")
         
-    def _confirm_paper_trading(self):
+    def _confirm_paper_trading(self) -> bool:
+        """
+        Verify that paper trading is enabled.
+
+        Returns:
+            bool: True if paper trading is enabled
+
+        Raises:
+            ValueError: If paper trading is not enabled
+        """
         if self.paper_trading:
             return True
         else:
             raise ValueError("Paper trading must be enabled for testing")
         
-    def _perform_sanity_checks(self):
+    def _perform_sanity_checks(self) -> None:
+        """
+        Perform all configuration sanity checks.
+
+        Raises:
+            ValueError: If any sanity check fails
+        """
         self._confirm_sell_buckets()
         self._confirm_paper_trading()
 
-    def _confirm_sell_buckets(self):
+    def _confirm_sell_buckets(self) -> None:
+        """
+        Verify that the number of sell buckets matches the number of profit targets.
+
+        Raises:
+            ValueError: If sell_buckets is not equal to len(profit_targets) + 1
+        """
         if self.sell_buckets != len(self.profit_targets) + 1:
             msg = f"Sell buckets must be equal to the number of profit targets - 1."
             msg += f"The last bucket is used for runners."

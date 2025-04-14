@@ -14,11 +14,26 @@ from src.trading_session_manager import TradingSessionManager
 from src.portfolio.portfolio_manager import PortfolioManager
 from src.mkt_data.mkt_data_state import MktDataState
 from src.strategys.take_profit_strategy import TakeProfitStrategy
+from typing import List, Optional
 
 
 class ExecutionOrchestrator:
+    """Orchestrates the execution of trading strategies and position management.
+    
+    This class manages the entire trading lifecycle including:
+    - System initialization and configuration
+    - Trading session management
+    - Position entry and exit
+    - Risk management and profit taking
+    - End-of-day procedures
+    """
 
-    def __init__(self, cfg: Configuration):
+    def __init__(self, cfg: Configuration) -> None:
+        """Initialize the execution orchestrator.
+        
+        Args:
+            cfg (Configuration): Configuration object containing trading parameters
+        """
         self.config = cfg
         self.api = AlpacaAPI()
         self.trading_session_manager = TradingSessionManager(
@@ -30,9 +45,19 @@ class ExecutionOrchestrator:
 
         self.expiry_day = False
 
-
-    def start(self):
-        """Start the trading system"""
+    def start(self) -> None:
+        """Start the trading system and initialize all components.
+        
+        This method:
+        - Saves the configuration for audit purposes
+        - Initializes the API connection
+        - Sets up market data subscriptions
+        - Starts the main trading loop
+        
+        Raises:
+            ConnectionError: If API connection fails
+            Exception: For any other unexpected errors
+        """
         try:
             self._save_config()
             logging.info("Starting trading system...")
@@ -53,10 +78,9 @@ class ExecutionOrchestrator:
                 )
 
             time.sleep(3)   #Seems important to wait for the websocket to connect! 
-                            #Not sure why this is needed over the pause in the api.connect()
+                            #Unclear why this is needed over the pause in the api.connect()
 
             try:
-
                 self._trading_session_loop()
 
             except Exception as e:
@@ -73,11 +97,17 @@ class ExecutionOrchestrator:
             logging.error(f"Unexpected error within trading system: {str(e)}")
 
         finally:
-
             logging.info("Trading system shut down")
             
-    def _trading_session_loop(self):
-        """Main trading loop"""
+    def _trading_session_loop(self) -> None:
+        """Main trading loop that manages the trading session.
+        
+        This method:
+        - Checks if it's a valid trading day
+        - Manages trading hours
+        - Handles day transitions
+        - Executes trading logic during valid sessions
+        """
         previous_day = pd.Timestamp.now(tz=self.config.timezone).date()
         self.expiry_day = is_expiry_day(self.api, self.config.instrument_id, self.config.timezone)
 
@@ -104,9 +134,20 @@ class ExecutionOrchestrator:
                 logging.warning("Outside trading schedule. Waiting...")
                 time.sleep(60)
 
-    def _trading_execution(self):
-        """Execute trading logic"""
-
+    def _trading_execution(self) -> None:
+        """Execute the core trading logic.
+        
+        This method:
+        - Places initial orders
+        - Manages position entry
+        - Implements profit-taking strategy
+        - Handles position exits
+        - Manages expiry day procedures
+        
+        Raises:
+            ValueError: If position quantities don't match expectations
+            Exception: For any other unexpected errors
+        """
         ## Place sample order & wait for response
         order = self.api.place_market_order(
             self.config.instrument_id, 
@@ -220,8 +261,12 @@ class ExecutionOrchestrator:
 
             logging.info("All positions closed. Terminating...")
 
-    def _save_config(self):
-        """Save configuration file to outputs for audit purposes"""
+    def _save_config(self) -> None:
+        """Save the current configuration to the output directory for audit purposes.
+        
+        The configuration is saved with a timestamp in the filename to maintain
+        a history of configurations used for trading sessions.
+        """
         # Create output directory if it doesn't exist
         output_dir = os.path.join(os.getcwd(), "output")
         os.makedirs(output_dir, exist_ok=True)

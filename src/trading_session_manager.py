@@ -3,6 +3,7 @@ import pandas as pd
 import holidays
 import pytz
 import time
+from typing import Optional
 
 
 class TradingSessionManager:
@@ -20,7 +21,7 @@ class TradingSessionManager:
     and cancellation of orders as market close approaches.
     """
     
-    def __init__(self, timezone, trading_start_time, trading_end_time):
+    def __init__(self, timezone: str, trading_start_time: str, trading_end_time: str) -> None:
         """Initialize the trading session manager
         
         Args:
@@ -32,7 +33,7 @@ class TradingSessionManager:
         self.trading_start = pd.to_datetime(trading_start_time, format='%H%M').tz_localize(self.timezone).time()
         self.trading_end = pd.to_datetime(trading_end_time, format='%H%M').tz_localize(self.timezone).time()
     
-    def is_trading_hours(self, now: pd.Timestamp):
+    def is_trading_hours(self, now: pd.Timestamp) -> bool:
         """Check if current time is within trading hours
         
         Args:
@@ -49,7 +50,7 @@ class TradingSessionManager:
         else:
             return current_time >= self.trading_start or current_time < self.trading_end
             
-    def is_trading_day(self, now_timestamp: pd.Timestamp):
+    def is_trading_day(self, now_timestamp: pd.Timestamp) -> bool:
         """Check if today is a trading day (Sunday through Friday)
         
         Args:
@@ -73,10 +74,19 @@ class TradingSessionManager:
             return False 
         
     def perform_eod_close(self, 
-                           now: pd.Timestamp, 
-                           eod_exit_time: str, 
-                           market_close_time: str):
-        """Perform end of day checks"""
+                         now: pd.Timestamp, 
+                         eod_exit_time: str, 
+                         market_close_time: str) -> bool:
+        """Perform end of day checks and handle market close procedures.
+        
+        Args:
+            now (pd.Timestamp): Current timestamp
+            eod_exit_time (str): Time to start EOD procedures in HHMM format
+            market_close_time (str): Market close time in HHMM format
+            
+        Returns:
+            bool: True if EOD procedures were performed, False otherwise
+        """
         eod_cutoff = pd.Timestamp(
                 now.year, 
                 now.month, 
