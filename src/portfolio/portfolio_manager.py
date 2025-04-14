@@ -111,8 +111,8 @@ class PortfolioManager:
                     (loaded_buckets_closed['order_status'] == 'filled')
             loaded_buckets_closed = loaded_buckets_closed[query]
 
-            logging.debug(f"Loaded existing positions_closed.csv with {len(loaded_buckets_closed)} records: {loaded_buckets_closed}")
-            logging.debug(f"{len(loaded_buckets_closed)} positions have been closed with a total qty {sum(loaded_buckets_closed['bucket_qty'])} sold")
+            logging.info(f"Loaded existing positions_closed.csv with {len(loaded_buckets_closed)} records: {loaded_buckets_closed}")
+            logging.info(f"{len(loaded_buckets_closed)} positions have been closed with a total qty {sum(loaded_buckets_closed['bucket_qty'])} sold")
 
             self._starting_idx = len(loaded_buckets_closed)
 

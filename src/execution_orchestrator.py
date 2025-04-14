@@ -127,14 +127,15 @@ class ExecutionOrchestrator:
 
             if self.trading_session_manager.is_trading_day(now) and self.trading_session_manager.is_trading_hours(now):
 
-                self._trading_execution()
+                if self._trading_execution():
+                    break
 
             else:
 
                 logging.warning("Outside trading schedule. Waiting...")
                 time.sleep(60)
 
-    def _trading_execution(self) -> None:
+    def _trading_execution(self) -> bool:
         """Execute the core trading logic.
         
         This method:
@@ -147,6 +148,9 @@ class ExecutionOrchestrator:
         Raises:
             ValueError: If position quantities don't match expectations
             Exception: For any other unexpected errors
+
+        Returns:
+            bool: True once all positions are closed
         """
         ## Place sample order & wait for response
         order = self.api.place_market_order(
@@ -162,30 +166,31 @@ class ExecutionOrchestrator:
         profit_target_levels = [float(native_position.avg_entry_price) * (1 + target) for target in self.config.profit_targets]
         logging.info(f"Profit target levels: {profit_target_levels}")
 
-        sell_quantity_buckets = quantity_buckets(self.config.starting_position_quantity, 
+        original_sell_quantity_buckets = quantity_buckets(self.config.starting_position_quantity, 
                                                  self.config.sell_buckets, 
                                                  self.config.close_strategy)
-        logging.info(f"Sell quantity buckets: {sell_quantity_buckets}")
-        logging.info(f"The latest bucket with quantity {sell_quantity_buckets[-1]} will be used as runners.")
+        logging.info(f"Sell quantity buckets: {original_sell_quantity_buckets}")
+        logging.info(f"The latest bucket with quantity {original_sell_quantity_buckets[-1]} will be used as runners.")
         logging.info(f"No take-profit constraint for these.")
 
-        sell_quantity_buckets = sell_quantity_buckets[:-1]
+        sell_quantity_buckets = original_sell_quantity_buckets[:-1]
 
         # Check existing position has enough quantity to sell
         if native_position is None:
             logging.error(f"No position found for {self.config.instrument_id}")
             return
         else:
-            logging.debug(f"Position found for {self.config.instrument_id}: {native_position}")
+            logging.info(f"Position found for {self.config.instrument_id}")
+            logging.debug(f"{native_position}")
 
-        required_qty = sum(sell_quantity_buckets[self.portfolio_manager.starting_idx:])
+        required_qty = sum(original_sell_quantity_buckets[self.portfolio_manager.starting_idx:])
         if int(native_position.qty) < required_qty:
             logging.error(f"Position quantity mismatch. Expected at least {required_qty}, got {native_position.qty}")
             logging.error("Will not be able to close positions as requested.")
 
             raise ValueError("Position quantity mismatch. Please check.")
         else:
-            logging.info(f"Position quantity matches. Expected {required_qty}, got {native_position.qty}")
+            logging.info(f"Position quantity sufficient. Expected {required_qty}, got {native_position.qty}")
      
   
         try:
@@ -209,13 +214,13 @@ class ExecutionOrchestrator:
 
                         self.mkt_data_state.update_state()
 
-                        # Log every 1000 iterations for debugging
-                        if loop_counter % 1000 == 0:
+                        # Log every 100 iterations for debugging
+                        if loop_counter % 100 == 0:
                             latest_quote = self.mkt_data_state.latest_quote()
 
                             msg = f"Using quote: timestamp: {latest_quote.name}, bid_price: {latest_quote.bid_price}"
                             msg += f", target: {cur_profit_target}"
-                            logging.debug(msg)
+                            logging.info(msg)
 
                         signal = TakeProfitStrategy.generate_signals(self.mkt_data_state, self.config, {'profit_target': cur_profit_target})
 
@@ -235,7 +240,7 @@ class ExecutionOrchestrator:
                             now = pd.Timestamp.now(tz=self.config.timezone)
                             expiry_sell_cutoff = self.trading_session_manager.trading_end - pd.Timedelta(minutes=self.config.expiry_sell_cutoff)
 
-                            if loop_counter % 1000 == 0:
+                            if loop_counter % 100 == 0:
                                 logging.info(f"Expiry day. Checking if we should close positions. Cutoff time: {expiry_sell_cutoff}")
 
                             if now >= expiry_sell_cutoff and not self.portfolio_manager.latest_order_pending():
@@ -253,6 +258,7 @@ class ExecutionOrchestrator:
                     raise ValueError(f"Current bucket quantity is {cur_bucket_qty}. Exiting loop.")
                 
             logging.info(f"All positions closed. Only runners left. Terminating...")
+            return True
 
         except Exception as e:
 
@@ -260,10 +266,6 @@ class ExecutionOrchestrator:
             logging.debug(f"Closing all positions")
 
             self.api.close_all_positions()
-
-        finally:
-
-            logging.info("All positions closed. Terminating...")
 
     def _save_config(self) -> None:
         """Save the current configuration to the output directory for audit purposes.

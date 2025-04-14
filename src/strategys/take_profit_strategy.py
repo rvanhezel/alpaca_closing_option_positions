@@ -33,4 +33,6 @@ class TakeProfitStrategy(AbstractStrategy):
 
             return Signal.SELL
         else:
+
+            logging.debug(f"HOLD signal generated")
             return Signal.HOLD
