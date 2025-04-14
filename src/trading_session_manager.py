@@ -65,8 +65,8 @@ class TradingSessionManager:
         if now_timestamp.date() in us_holidays:
             return False
         
-        # Sunday through Friday (6-4) - ?
-        elif 0 <= weekday <= 4 or (weekday == 6 and now_timestamp.time() >= self.trading_start):
+        # Monday through Friday (0-4)
+        elif 0 <= weekday <= 4:
             return True
             
         else:

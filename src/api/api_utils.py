@@ -10,3 +10,8 @@ def is_expiry_day(api: AlpacaAPI, instrument_id: str, timezone: str) -> bool:
         return True
     else:
         return False
+    
+def check_options_level(api: AlpacaAPI, level: int) -> bool:
+    """Check if the options level is high enough"""
+    return api.options_approved_level() >= level and api.options_trading_level() >= level
+

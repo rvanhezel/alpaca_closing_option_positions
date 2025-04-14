@@ -1,14 +1,9 @@
-import copy
-from src.portfolio.position import Position
 import pandas as pd
-from typing import List, Dict, Optional
 import os
-from src.portfolio.position import Position
 import queue
 from src.configuration import Configuration
 import logging
 import time
-from src.utilities.utils import trading_day_start_time_ts
 
 
 class PortfolioManager:

@@ -1,4 +1,4 @@
-from src.api.api_utils import is_expiry_day
+from src.api.api_utils import is_expiry_day, check_options_level
 from src.utilities.utils import quantity_buckets
 from src.utilities.logger import Logger
 import time
@@ -83,6 +83,9 @@ class ExecutionOrchestrator:
 
         if self.expiry_day:
             logging.info(f"{self.config.instrument_id} is expiring today: {self.expiry_day}")
+
+        if not check_options_level(self.api, 3):
+            raise ValueError("Options trading level is too low. Requier level 3Exiting...")
 
         while True:
             logging.info(f"Starting trading loop")

@@ -18,7 +18,7 @@ class MktDataState:
     def market_data(self):
         return self._market_data
 
-    def update_state(self, latest_tick_df: pd.DataFrame):
+    def update_state(self):
         """Update market data state"""
 
         while True:

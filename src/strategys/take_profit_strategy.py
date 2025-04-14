@@ -1,6 +1,5 @@
 from src.strategys.abstract_strategy import AbstractStrategy
 from src.configuration import Configuration
-import pandas as pd
 from src.utilities.enums import Signal
 from src.mkt_data.mkt_data_state import MktDataState
 import logging
@@ -28,7 +27,7 @@ class TakeProfitStrategy(AbstractStrategy):
 
         # Selling logic
         if latest_option_bid_price >= cur_profit_target:
-            
+
             logging.info(f"Latest option quote {latest_option_bid_price} >= {cur_profit_target}")
             logging.info(f"SELL signal generated")
 
