@@ -166,6 +166,10 @@ class ExecutionOrchestrator:
                                                  self.config.sell_buckets, 
                                                  self.config.close_strategy)
         logging.info(f"Sell quantity buckets: {sell_quantity_buckets}")
+        logging.info(f"The latest bucket with quantity {sell_quantity_buckets[-1]} will be used as runners.")
+        logging.info(f"No take-profit constraint for these.")
+
+        sell_quantity_buckets = sell_quantity_buckets[:-1]
 
         # Check existing position has enough quantity to sell
         if native_position is None:
@@ -174,7 +178,7 @@ class ExecutionOrchestrator:
         else:
             logging.debug(f"Position found for {self.config.instrument_id}: {native_position}")
 
-        required_qty = sum(sell_quantity_buckets[self.portfolio_manager.starting_idx,:])
+        required_qty = sum(sell_quantity_buckets[self.portfolio_manager.starting_idx:])
         if int(native_position.qty) < required_qty:
             logging.error(f"Position quantity mismatch. Expected at least {required_qty}, got {native_position.qty}")
             logging.error("Will not be able to close positions as requested.")
@@ -198,6 +202,8 @@ class ExecutionOrchestrator:
                     loop_counter = 0
                     while True:
 
+                        loop_counter += 1
+
                         if self.portfolio_manager.process_latest_order():
                             break
 
@@ -216,7 +222,7 @@ class ExecutionOrchestrator:
                         # Selling logic
                         if signal == Signal.SELL and not self.portfolio_manager.latest_order_pending():
                         
-                            logging.infp(f"Closing position {native_position.symbol} with quantity {cur_bucket_qty}")
+                            logging.info(f"Closing position {native_position.symbol} with quantity {cur_bucket_qty}")
 
                             #close position
                             self.portfolio_manager.close_position_by_id(native_position.symbol, cur_bucket_qty, idx)
@@ -242,8 +248,6 @@ class ExecutionOrchestrator:
                                 
                                 if self.portfolio_manager.process_latest_order():
                                     break
-
-                        loop_counter += 1
 
                 else:
                     raise ValueError(f"Current bucket quantity is {cur_bucket_qty}. Exiting loop.")
