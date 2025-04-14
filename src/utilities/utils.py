@@ -1,3 +1,4 @@
+from math import ceil
 import sys
 import logging
 import pandas as pd
@@ -43,6 +44,9 @@ def quantity_buckets(position_quantity: int, bucket_quantity: int, risk_approach
         
     if position_quantity == 1:
         return [1]
+    
+    if position_quantity < bucket_quantity:
+        raise ValueError("Position quantity must be greater or equal to the number of buckets")
         
     base_size = position_quantity // bucket_quantity
     remainder = position_quantity % bucket_quantity
@@ -52,9 +56,10 @@ def quantity_buckets(position_quantity: int, bucket_quantity: int, risk_approach
     if remainder > 0:
         if risk_approach.lower() == "risk_on":
             result[-1] += remainder
+
         elif risk_approach.lower() == "risk_off":
-            for i in range(remainder):
-                result[i] += 1
+            for idx, _ in enumerate(result):
+                result[idx] = ceil(position_quantity / bucket_quantity)
             result[-1] = position_quantity - sum(result[:-1])
         else:
             raise ValueError("risk_approach must be either 'risk_on' or 'risk_off'")
