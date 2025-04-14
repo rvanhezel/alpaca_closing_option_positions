@@ -1,0 +1,435 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.api.alpaca_api &mdash; Alpaca Options Trading Bot  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Alpaca Options Trading Bot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">Python Modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Alpaca Options Trading Bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.api.alpaca_api</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.api.alpaca_api</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">alpaca.data.live.option</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptionDataStream</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alpaca.data.historical.option</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptionHistoricalDataClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alpaca.trading.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">TradingClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alpaca.trading.requests</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">GetOrdersRequest</span><span class="p">,</span> 
+    <span class="n">MarketOrderRequest</span><span class="p">,</span> 
+    <span class="n">GetOrderByIdRequest</span><span class="p">,</span> 
+    <span class="n">ClosePositionRequest</span><span class="p">,</span> 
+    <span class="n">GetOptionContractsRequest</span><span class="p">,</span>
+    <span class="n">LimitOrderRequest</span><span class="p">,</span>
+    <span class="n">StopOrderRequest</span><span class="p">,</span>
+    <span class="n">GetAssetsRequest</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alpaca.trading.enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderSide</span><span class="p">,</span> <span class="n">QueryOrderStatus</span><span class="p">,</span> <span class="n">OrderType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alpaca.trading.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">TradingClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alpaca.trading.enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderSide</span><span class="p">,</span> <span class="n">TimeInForce</span><span class="p">,</span> <span class="n">OrderType</span><span class="p">,</span> <span class="n">AssetClass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alpaca.trading.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptionContract</span><span class="p">,</span> <span class="n">OptionContractsResponse</span><span class="p">,</span> <span class="n">Asset</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.utilities.enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">Signal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alpaca.trading.stream</span><span class="w"> </span><span class="kn">import</span> <span class="n">TradingStream</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alpaca.trading.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Order</span>
+
+
+<div class="viewcode-block" id="AlpacaAPI">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AlpacaAPI</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrapper class for the Alpaca API and websocket.</span>
+<span class="sd">    </span>
+<span class="sd">    Reference: https://alpaca.markets/sdks/python/api_reference/trading_api.html</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;trading_api&quot;</span><span class="p">,</span> 
+        <span class="s2">&quot;trading_stream&quot;</span><span class="p">,</span> 
+        <span class="s2">&quot;option_md_stream&quot;</span><span class="p">,</span> 
+        <span class="s2">&quot;option_md_api&quot;</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="AlpacaAPI.__init__">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize AlpacaAPI instance without an active connection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Configure logging to suppress Alpaca websocket &amp; API messages</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;websockets&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;alpaca&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_stream</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_md_stream</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_md_api</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI.connect">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.connect">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Configuration</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_connect_trading_api</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_connect_trading_websocket</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_connect_option_md_api</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_connect_option_md_websocket</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="c1">#important to wait for the websockets to connect!</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI._connect_trading_api">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI._connect_trading_api">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_connect_trading_api</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Configuration</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Connect to the Alpaca API using the provided configuration.</span>
+
+<span class="sd">        :param config: Configuration object containing API keys and settings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span> <span class="o">=</span> <span class="n">TradingClient</span><span class="p">(</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALPACA_KEY&#39;</span><span class="p">,</span> <span class="s1">&#39;WRONG-KEY&#39;</span><span class="p">),</span>
+                <span class="n">secret_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALPACA_SECRET&#39;</span><span class="p">,</span> <span class="s1">&#39;WRONG-KEY&#39;</span><span class="p">),</span>
+                <span class="n">paper</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">paper_trading</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully connected to Alpaca trading client.&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to connect to Alpaca API: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI._connect_trading_websocket">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI._connect_trading_websocket">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_connect_trading_websocket</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Configuration</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Connect to the Alpaca websocket.</span>
+
+<span class="sd">        :param config: Configuration object containing API keys and settings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_stream</span> <span class="o">=</span> <span class="n">TradingStream</span><span class="p">(</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALPACA_KEY&#39;</span><span class="p">,</span> <span class="s1">&#39;WRONG-KEY&#39;</span><span class="p">),</span>
+                <span class="n">secret_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALPACA_SECRET&#39;</span><span class="p">,</span> <span class="s1">&#39;WRONG-KEY&#39;</span><span class="p">),</span>
+                <span class="n">paper</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_stream</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="c1">#important to wait for the websocket to connect!</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully connected to Alpaca trading websocket.&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to connect to Alpaca websocket: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI._connect_option_md_websocket">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI._connect_option_md_websocket">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_connect_option_md_websocket</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Configuration</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Connect to the Alpaca option market data websocket.</span>
+
+<span class="sd">        :param config: Configuration object containing API keys and settings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">option_md_stream</span> <span class="o">=</span> <span class="n">OptionDataStream</span><span class="p">(</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALPACA_KEY&#39;</span><span class="p">,</span> <span class="s1">&#39;WRONG-KEY&#39;</span><span class="p">),</span>
+                <span class="n">secret_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALPACA_SECRET&#39;</span><span class="p">,</span> <span class="s1">&#39;WRONG-KEY&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">option_md_stream</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="c1">#important to wait for the websocket to connect!</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully connected to Alpaca option market data websocket.&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to connect to Alpaca option market data websocket: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI._connect_option_md_api">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI._connect_option_md_api">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_connect_option_md_api</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Configuration</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Connect to the Alpaca option market data API.</span>
+
+<span class="sd">        :param config: Configuration object containing API keys and settings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">option_md_api</span> <span class="o">=</span> <span class="n">OptionHistoricalDataClient</span><span class="p">(</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALPACA_KEY&#39;</span><span class="p">,</span> <span class="s1">&#39;WRONG-KEY&#39;</span><span class="p">),</span>
+                <span class="n">secret_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALPACA_SECRET&#39;</span><span class="p">,</span> <span class="s1">&#39;WRONG-KEY&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully connected to Alpaca option market data API.&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to connect to Alpaca option market data API: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI.subscribe_option_md_updates">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.subscribe_option_md_updates">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subscribe_option_md_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quotes_handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">trades_handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">symbols</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Subscribing to option market data streaming updates for </span><span class="si">{</span><span class="n">symbols</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_md_stream</span><span class="o">.</span><span class="n">subscribe_quotes</span><span class="p">(</span><span class="n">quotes_handler</span><span class="p">,</span> <span class="o">*</span><span class="n">symbols</span><span class="p">)</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_md_stream</span><span class="o">.</span><span class="n">subscribe_trades</span><span class="p">(</span><span class="n">trades_handler</span><span class="p">,</span> <span class="o">*</span><span class="n">symbols</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI.subscribe_trade_updates">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.subscribe_trade_updates">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subscribe_trade_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Subscribe to trade updates from the Alpaca websocket.</span>
+
+<span class="sd">        :param update_handler: Callable function that will be called with trade update data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Subscribing to trade updates from the Alpaca trading websocket.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_stream</span><span class="o">.</span><span class="n">subscribe_trade_updates</span><span class="p">(</span><span class="n">update_handler</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI.account_details">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.account_details">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">account_details</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">get_account</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="AlpacaAPI.options_approved_level">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.options_approved_level">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">options_approved_level</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">account_details</span><span class="p">()</span><span class="o">.</span><span class="n">options_approved_level</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI.options_trading_level">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.options_trading_level">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">options_trading_level</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">account_details</span><span class="p">()</span><span class="o">.</span><span class="n">options_trading_level</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI.get_orders">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_orders">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_orders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">:</span> <span class="n">Signal</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">signal</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">status</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">get_orders</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">signal</span><span class="p">:</span>
+            <span class="n">signal</span> <span class="o">=</span> <span class="n">OrderSide</span><span class="o">.</span><span class="n">SELL</span> <span class="k">if</span> <span class="n">signal</span> <span class="o">==</span> <span class="n">Signal</span><span class="o">.</span><span class="n">SELL</span> <span class="k">else</span> <span class="n">OrderSide</span><span class="o">.</span><span class="n">BUY</span>
+
+        <span class="k">if</span> <span class="n">status</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;open&quot;</span><span class="p">:</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="n">QueryOrderStatus</span><span class="o">.</span><span class="n">OPEN</span>
+            <span class="k">elif</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;closed&quot;</span><span class="p">:</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="n">QueryOrderStatus</span><span class="o">.</span><span class="n">CLOSED</span>
+            <span class="k">elif</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="n">QueryOrderStatus</span><span class="o">.</span><span class="n">ALL</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid status&quot;</span><span class="p">)</span>
+
+        <span class="n">request_params</span> <span class="o">=</span> <span class="n">GetOrdersRequest</span><span class="p">(</span>
+            <span class="n">status</span><span class="o">=</span><span class="n">status</span> <span class="k">if</span> <span class="n">status</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">side</span><span class="o">=</span><span class="n">signal</span> <span class="k">if</span> <span class="n">signal</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">get_orders</span><span class="p">(</span><span class="nb">filter</span><span class="o">=</span><span class="n">request_params</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AlpacaAPI.get_order_by_id">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_order_by_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_order_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">_options</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GetOrderByIdRequest</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">get_order_by_id</span><span class="p">(</span><span class="n">order_id</span><span class="p">,</span> <span class="n">_options</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AlpacaAPI.place_market_order">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.place_market_order">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">place_market_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">qty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">side</span><span class="p">:</span> <span class="n">Signal</span><span class="p">,</span> <span class="n">tif</span> <span class="o">=</span> <span class="n">TimeInForce</span><span class="o">.</span><span class="n">DAY</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Placing market order for </span><span class="si">{</span><span class="n">symbol</span><span class="si">}</span><span class="s2"> with quantity </span><span class="si">{</span><span class="n">qty</span><span class="si">}</span><span class="s2"> and side </span><span class="si">{</span><span class="n">side</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">side</span> <span class="o">=</span> <span class="n">OrderSide</span><span class="o">.</span><span class="n">BUY</span> <span class="k">if</span> <span class="n">side</span> <span class="o">==</span> <span class="n">Signal</span><span class="o">.</span><span class="n">BUY</span> <span class="k">else</span> <span class="n">OrderSide</span><span class="o">.</span><span class="n">SELL</span>
+
+        <span class="n">market_order_data</span> <span class="o">=</span> <span class="n">MarketOrderRequest</span><span class="p">(</span>
+                            <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
+                            <span class="n">qty</span><span class="o">=</span><span class="n">qty</span><span class="p">,</span>
+                            <span class="n">side</span><span class="o">=</span><span class="n">side</span><span class="p">,</span>
+                            <span class="n">time_in_force</span><span class="o">=</span><span class="n">tif</span>
+                            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">submit_order</span><span class="p">(</span><span class="n">order_data</span><span class="o">=</span><span class="n">market_order_data</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AlpacaAPI.cancel_all_orders">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.cancel_all_orders">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cancel_all_orders</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of cancelled orders&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">cancel_orders</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="AlpacaAPI.cancel_order_by_id">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.cancel_order_by_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cancel_order_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">cancel_order_by_id</span><span class="p">(</span><span class="n">order_id</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI.get_all_positions">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_all_positions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of all positions&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">get_all_positions</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="AlpacaAPI.get_open_position_by_id">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_open_position_by_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_open_position_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol_or_asset_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">str</span><span class="p">]):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">get_open_position</span><span class="p">(</span><span class="n">symbol_or_asset_id</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI.close_all_positions">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.close_all_positions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close_all_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cancel_orders</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of closed positions&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">close_all_positions</span><span class="p">(</span><span class="n">cancel_orders</span><span class="o">=</span><span class="n">cancel_orders</span><span class="p">)</span></div>
+
+    
+    <span class="c1"># def close_position_by_id(self, symbol_or_asset_id: Union[UUID, str], close_options: Optional[ClosePositionRequest] = None):</span>
+    <span class="c1">#     return self.client_api.close_position(symbol_or_asset_id, close_options)</span>
+    
+<div class="viewcode-block" id="AlpacaAPI.close_position_by_id">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.close_position_by_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close_position_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol_or_asset_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">qty</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">qty</span><span class="p">:</span>
+            <span class="n">close_options</span> <span class="o">=</span> <span class="n">ClosePositionRequest</span><span class="p">(</span><span class="n">qty</span><span class="o">=</span><span class="n">qty</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">close_position</span><span class="p">(</span><span class="n">symbol_or_asset_id</span><span class="p">,</span> <span class="n">close_options</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">close_position</span><span class="p">(</span><span class="n">symbol_or_asset_id</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AlpacaAPI.get_option_contract_by_id">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_option_contract_by_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_option_contract_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol_or_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">OptionContract</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">get_option_contract</span><span class="p">(</span><span class="n">symbol_or_id</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AlpacaAPI.get_all_assets">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_all_assets">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_assets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GetAssetsRequest</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Asset</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">get_all_assets</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AlpacaAPI.get_us_options">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_us_options">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_us_options</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Asset</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_assets</span><span class="p">(</span><span class="nb">filter</span><span class="o">=</span><span class="n">GetAssetsRequest</span><span class="p">(</span><span class="n">asset_class</span><span class="o">=</span><span class="n">AssetClass</span><span class="o">.</span><span class="n">US_OPTION</span><span class="p">))</span></div>
+
+    
+<div class="viewcode-block" id="AlpacaAPI.get_option_contracts">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_option_contracts">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_option_contracts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">GetOptionContractsRequest</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">OptionContract</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_api</span><span class="o">.</span><span class="n">get_option_contracts</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AlpacaAPI.close_websockets">
+<a class="viewcode-back" href="../../../src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.close_websockets">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close_websockets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stopping and closing websockets&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_stream</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_md_stream</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+</div>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Sajjad Masumi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

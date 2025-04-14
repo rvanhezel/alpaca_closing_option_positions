@@ -1,0 +1,271 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.portfolio.portfolio_manager &mdash; Alpaca Options Trading Bot  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Alpaca Options Trading Bot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">Python Modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Alpaca Options Trading Bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.portfolio.portfolio_manager</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.portfolio.portfolio_manager</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">queue</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+
+<div class="viewcode-block" id="PortfolioManager">
+<a class="viewcode-back" href="../../../src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PortfolioManager</span><span class="p">:</span>
+
+<div class="viewcode-block" id="PortfolioManager.__init__">
+<a class="viewcode-back" href="../../../src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Configuration</span><span class="p">,</span> <span class="n">api</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api</span> <span class="o">=</span> <span class="n">api</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">orders</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># (order, order idx, handled) - handled is a boolean to check if the order has been processed to csv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_order_statuses</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trade_data</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">closed_buckets</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;order_id&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;symbol&quot;</span><span class="p">,</span> 
+            <span class="s2">&quot;order_status&quot;</span><span class="p">,</span> 
+            <span class="s2">&quot;bucket_qty&quot;</span><span class="p">,</span> 
+            <span class="s2">&quot;fill_price&quot;</span><span class="p">,</span> 
+            <span class="s2">&quot;timestamp&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;reason&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_starting_idx</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">starting_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_starting_idx</span>
+    
+<div class="viewcode-block" id="PortfolioManager.close_position_by_id">
+<a class="viewcode-back" href="../../../src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.close_position_by_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close_position_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">qty</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">close_position_by_id</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">qty</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">orders</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">order</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wait_for_order_response</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PortfolioManager.process_latest_order">
+<a class="viewcode-back" href="../../../src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.process_latest_order">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_latest_order</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Process the latest order&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">orders</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        
+        <span class="n">placed_order</span><span class="p">,</span> <span class="n">order_idx</span><span class="p">,</span> <span class="n">handled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_statuses</span><span class="p">[</span><span class="n">placed_order</span><span class="o">.</span><span class="n">id</span><span class="p">]</span><span class="o">.</span><span class="n">order</span>
+
+        <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;filled&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">handled</span><span class="p">:</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PtfMgr: Adding filled order </span><span class="si">{</span><span class="n">order</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> at idx </span><span class="si">{</span><span class="n">order_idx</span><span class="si">}</span><span class="s2"> to csv&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">closed_buckets</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">order_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">order</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> 
+                <span class="n">order</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span>
+                <span class="n">order</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> 
+                <span class="n">order</span><span class="o">.</span><span class="n">qty</span><span class="p">,</span>
+                <span class="n">order</span><span class="o">.</span><span class="n">filled_avg_price</span><span class="p">,</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">timezone</span><span class="p">),</span>
+                <span class="s2">&quot;profit_target&quot;</span><span class="p">]</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">closed_buckets</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="s2">&quot;positions_closed.csv&quot;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="n">order_idx</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="kc">True</span>
+        
+        <span class="k">elif</span> <span class="n">order</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;cancelled&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">handled</span><span class="p">:</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PtfMgr: Adding cancelled order </span><span class="si">{</span><span class="n">order</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> at idx </span><span class="si">{</span><span class="n">order_idx</span><span class="si">}</span><span class="s2"> to csv&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">closed_buckets</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">order_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">order</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> 
+            <span class="n">order</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span>
+            <span class="n">order</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> 
+            <span class="n">order</span><span class="o">.</span><span class="n">qty</span><span class="p">,</span> 
+            <span class="n">order</span><span class="o">.</span><span class="n">filled_avg_price</span><span class="p">,</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">timezone</span><span class="p">),</span>
+            <span class="s2">&quot;profit_target&quot;</span><span class="p">]</span>
+        
+            <span class="bp">self</span><span class="o">.</span><span class="n">closed_buckets</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="s2">&quot;positions_closed.csv&quot;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="n">order_idx</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="kc">False</span> <span class="c1">#If an order is cancelled, we need to reprocess the bucket</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+    
+<div class="viewcode-block" id="PortfolioManager.latest_order_pending">
+<a class="viewcode-back" href="../../../src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.latest_order_pending">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latest_order_pending</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">orders</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        
+        <span class="n">order_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">id</span>
+        <span class="n">order_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_statuses</span><span class="p">[</span><span class="n">order_id</span><span class="p">]</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">status</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">order_status</span> <span class="o">!=</span> <span class="s1">&#39;filled&#39;</span> <span class="ow">and</span>
+            <span class="n">order_status</span> <span class="o">!=</span> <span class="s1">&#39;cancelled&#39;</span><span class="p">):</span>
+
+                    <span class="k">return</span> <span class="kc">True</span>
+                
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="PortfolioManager.populate_from_csv">
+<a class="viewcode-back" href="../../../src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.populate_from_csv">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">populate_from_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;PortfolioManager: Populating orders from csv.&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Check if positions_closed.csv exists and load it</span>
+        <span class="n">positions_closed_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="s2">&quot;positions_closed.csv&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">positions_closed_path</span><span class="p">):</span>
+
+            <span class="n">loaded_buckets_closed</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">positions_closed_path</span><span class="p">)</span>
+
+            <span class="n">query</span> <span class="o">=</span> <span class="p">(</span><span class="n">loaded_buckets_closed</span><span class="p">[</span><span class="s1">&#39;symbol&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">instrument_id</span><span class="p">)</span> <span class="o">&amp;</span> \
+                    <span class="p">(</span><span class="n">loaded_buckets_closed</span><span class="p">[</span><span class="s1">&#39;order_status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;filled&#39;</span><span class="p">)</span>
+            <span class="n">loaded_buckets_closed</span> <span class="o">=</span> <span class="n">loaded_buckets_closed</span><span class="p">[</span><span class="n">query</span><span class="p">]</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded existing positions_closed.csv with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">loaded_buckets_closed</span><span class="p">)</span><span class="si">}</span><span class="s2"> records: </span><span class="si">{</span><span class="n">loaded_buckets_closed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">loaded_buckets_closed</span><span class="p">)</span><span class="si">}</span><span class="s2"> positions have been closed with a total qty </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">loaded_buckets_closed</span><span class="p">[</span><span class="s1">&#39;bucket_qty&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> sold&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_starting_idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loaded_buckets_closed</span><span class="p">)</span>
+
+            <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed_buckets</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">loaded_buckets_closed</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing columns in loaded positions_closed.csv: </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">closed_buckets</span> <span class="o">=</span> <span class="n">loaded_buckets_closed</span></div>
+
+
+<div class="viewcode-block" id="PortfolioManager.update_order_status">
+<a class="viewcode-back" href="../../../src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.update_order_status">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update_order_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update order status&quot;&quot;&quot;</span>
+        <span class="c1"># logging.debug(f&quot;Order update received from WS. Id: {data.order.id}. Status: {data.order.status}&quot;)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_order_statuses</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="PortfolioManager.update_trade_data">
+<a class="viewcode-back" href="../../../src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.update_trade_data">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update_trade_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update trade data from WS&quot;&quot;&quot;</span>
+        <span class="c1"># logging.debug(f&quot;Trade data received from WS: {data}&quot;)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trade_data</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PortfolioManager.wait_for_order_response">
+<a class="viewcode-back" href="../../../src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.wait_for_order_response">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wait_for_order_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order_id</span><span class="p">,</span> <span class="n">timeout</span><span class="p">):</span>
+        <span class="n">cur_timeout</span> <span class="o">=</span> <span class="n">timeout</span>
+        <span class="k">while</span> <span class="n">cur_timeout</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">order_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order_statuses</span><span class="p">:</span>
+                <span class="n">cur_timeout</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span></div>
+</div>
+
+        
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Sajjad Masumi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

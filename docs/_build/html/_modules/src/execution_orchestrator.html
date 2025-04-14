@@ -1,0 +1,399 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.execution_orchestrator &mdash; Alpaca Options Trading Bot  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Alpaca Options Trading Bot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Python Modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Alpaca Options Trading Bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.execution_orchestrator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.execution_orchestrator</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">src.api.api_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_expiry_day</span><span class="p">,</span> <span class="n">check_options_level</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.utilities.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">quantity_buckets</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.utilities.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.configuration</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configuration</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.utilities.enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">Signal</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.api.alpaca_api</span><span class="w"> </span><span class="kn">import</span> <span class="n">AlpacaAPI</span>    
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.trading_session_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TradingSessionManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.portfolio.portfolio_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">PortfolioManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.mkt_data.mkt_data_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">MktDataState</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.strategys.take_profit_strategy</span><span class="w"> </span><span class="kn">import</span> <span class="n">TakeProfitStrategy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+
+<div class="viewcode-block" id="ExecutionOrchestrator">
+<a class="viewcode-back" href="../../src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExecutionOrchestrator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Orchestrates the execution of trading strategies and position management.</span>
+<span class="sd">    </span>
+<span class="sd">    This class manages the entire trading lifecycle including:</span>
+<span class="sd">    - System initialization and configuration</span>
+<span class="sd">    - Trading session management</span>
+<span class="sd">    - Position entry and exit</span>
+<span class="sd">    - Risk management and profit taking</span>
+<span class="sd">    - End-of-day procedures</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ExecutionOrchestrator.__init__">
+<a class="viewcode-back" href="../../src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">Configuration</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the execution orchestrator.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            cfg (Configuration): Configuration object containing trading parameters</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">cfg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api</span> <span class="o">=</span> <span class="n">AlpacaAPI</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_session_manager</span> <span class="o">=</span> <span class="n">TradingSessionManager</span><span class="p">(</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">timezone</span><span class="p">,</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">trading_start_time</span><span class="p">,</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">trading_end_time</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span> <span class="o">=</span> <span class="n">PortfolioManager</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mkt_data_state</span> <span class="o">=</span> <span class="n">MktDataState</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">expiry_day</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="ExecutionOrchestrator.start">
+<a class="viewcode-back" href="../../src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator.start">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start the trading system and initialize all components.</span>
+<span class="sd">        </span>
+<span class="sd">        This method:</span>
+<span class="sd">        - Saves the configuration for audit purposes</span>
+<span class="sd">        - Initializes the API connection</span>
+<span class="sd">        - Sets up market data subscriptions</span>
+<span class="sd">        - Starts the main trading loop</span>
+<span class="sd">        </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ConnectionError: If API connection fails</span>
+<span class="sd">            Exception: For any other unexpected errors</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_save_config</span><span class="p">()</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting trading system...&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">paper_trading</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Paper trading mode enabled&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Live trading mode enabled&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">populate_from_csv</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">subscribe_trade_updates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">update_order_status</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">subscribe_option_md_updates</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mkt_data_state</span><span class="o">.</span><span class="n">update_quote_data</span><span class="p">,</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">update_trade_data</span><span class="p">,</span> 
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">instrument_id</span><span class="p">]</span>
+                <span class="p">)</span>
+
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>   <span class="c1">#Seems important to wait for the websocket to connect! </span>
+                            <span class="c1">#Unclear why this is needed over the pause in the api.connect()</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_trading_session_loop</span><span class="p">()</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error in trading loop: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>  
+
+        <span class="k">except</span> <span class="ne">ConnectionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to connect to Alpaca API: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;KeyboardInterrupt - Shutting down trading system...&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected error within trading system: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Trading system shut down&quot;</span><span class="p">)</span></div>
+
+            
+<div class="viewcode-block" id="ExecutionOrchestrator._trading_session_loop">
+<a class="viewcode-back" href="../../src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator._trading_session_loop">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_trading_session_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Main trading loop that manages the trading session.</span>
+<span class="sd">        </span>
+<span class="sd">        This method:</span>
+<span class="sd">        - Checks if it&#39;s a valid trading day</span>
+<span class="sd">        - Manages trading hours</span>
+<span class="sd">        - Handles day transitions</span>
+<span class="sd">        - Executes trading logic during valid sessions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">previous_day</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expiry_day</span> <span class="o">=</span> <span class="n">is_expiry_day</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">instrument_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expiry_day</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">instrument_id</span><span class="si">}</span><span class="s2"> is expiring today: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">expiry_day</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">check_options_level</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Options trading level is too low. Requier level 3Exiting...&quot;</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting trading loop&quot;</span><span class="p">)</span>
+
+            <span class="n">now</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">now</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">previous_day</span><span class="p">:</span>
+                <span class="n">Logger</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">date</span><span class="p">())</span> <span class="c1"># Create new log file for new day to avoid excessively large files</span>
+                <span class="n">previous_day</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_session_manager</span><span class="o">.</span><span class="n">is_trading_day</span><span class="p">(</span><span class="n">now</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_session_manager</span><span class="o">.</span><span class="n">is_trading_hours</span><span class="p">(</span><span class="n">now</span><span class="p">):</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_trading_execution</span><span class="p">()</span>
+
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Outside trading schedule. Waiting...&quot;</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ExecutionOrchestrator._trading_execution">
+<a class="viewcode-back" href="../../src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator._trading_execution">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_trading_execution</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute the core trading logic.</span>
+<span class="sd">        </span>
+<span class="sd">        This method:</span>
+<span class="sd">        - Places initial orders</span>
+<span class="sd">        - Manages position entry</span>
+<span class="sd">        - Implements profit-taking strategy</span>
+<span class="sd">        - Handles position exits</span>
+<span class="sd">        - Manages expiry day procedures</span>
+<span class="sd">        </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If position quantities don&#39;t match expectations</span>
+<span class="sd">            Exception: For any other unexpected errors</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">## Place sample order &amp; wait for response</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">place_market_order</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">instrument_id</span><span class="p">,</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">starting_position_quantity</span><span class="p">,</span> 
+            <span class="n">Signal</span><span class="o">.</span><span class="n">BUY</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">wait_for_order_response</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+
+        <span class="c1"># Get position from API</span>
+        <span class="n">native_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">get_open_position_by_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">instrument_id</span><span class="p">)</span>
+
+        <span class="c1"># Define profit targets and sell quantity buckets</span>
+        <span class="n">profit_target_levels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">native_position</span><span class="o">.</span><span class="n">avg_entry_price</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">target</span><span class="p">)</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">profit_targets</span><span class="p">]</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Profit target levels: </span><span class="si">{</span><span class="n">profit_target_levels</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">sell_quantity_buckets</span> <span class="o">=</span> <span class="n">quantity_buckets</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">starting_position_quantity</span><span class="p">,</span> 
+                                                 <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">sell_buckets</span><span class="p">,</span> 
+                                                 <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">close_strategy</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sell quantity buckets: </span><span class="si">{</span><span class="n">sell_quantity_buckets</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check existing position has enough quantity to sell</span>
+        <span class="k">if</span> <span class="n">native_position</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No position found for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">instrument_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Position found for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">instrument_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">native_position</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">required_qty</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sell_quantity_buckets</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">starting_idx</span><span class="p">,:])</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">native_position</span><span class="o">.</span><span class="n">qty</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">required_qty</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Position quantity mismatch. Expected at least </span><span class="si">{</span><span class="n">required_qty</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">native_position</span><span class="o">.</span><span class="n">qty</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Will not be able to close positions as requested.&quot;</span><span class="p">)</span>
+
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Position quantity mismatch. Please check.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Position quantity matches. Expected </span><span class="si">{</span><span class="n">required_qty</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">native_position</span><span class="o">.</span><span class="n">qty</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+     
+  
+        <span class="k">try</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">cur_bucket_qty</span><span class="p">,</span> <span class="n">cur_profit_target</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">sell_quantity_buckets</span><span class="p">,</span> <span class="n">profit_target_levels</span><span class="p">)):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current bucket quantity: </span><span class="si">{</span><span class="n">cur_bucket_qty</span><span class="si">}</span><span class="s2">, Current profit target: </span><span class="si">{</span><span class="n">cur_profit_target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">starting_idx</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping bucket </span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> as it has already been closed&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">cur_bucket_qty</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+
+                    <span class="n">loop_counter</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">process_latest_order</span><span class="p">():</span>
+                            <span class="k">break</span>
+
+                        <span class="bp">self</span><span class="o">.</span><span class="n">mkt_data_state</span><span class="o">.</span><span class="n">update_state</span><span class="p">()</span>
+
+                        <span class="c1"># Log every 1000 iterations for debugging</span>
+                        <span class="k">if</span> <span class="n">loop_counter</span> <span class="o">%</span> <span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">latest_quote</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mkt_data_state</span><span class="o">.</span><span class="n">latest_quote</span><span class="p">()</span>
+
+                            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Using quote: timestamp: </span><span class="si">{</span><span class="n">latest_quote</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, bid_price: </span><span class="si">{</span><span class="n">latest_quote</span><span class="o">.</span><span class="n">bid_price</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;, target: </span><span class="si">{</span><span class="n">cur_profit_target</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+                        <span class="n">signal</span> <span class="o">=</span> <span class="n">TakeProfitStrategy</span><span class="o">.</span><span class="n">generate_signals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mkt_data_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;profit_target&#39;</span><span class="p">:</span> <span class="n">cur_profit_target</span><span class="p">})</span>
+
+                        <span class="c1"># Selling logic</span>
+                        <span class="k">if</span> <span class="n">signal</span> <span class="o">==</span> <span class="n">Signal</span><span class="o">.</span><span class="n">SELL</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">latest_order_pending</span><span class="p">():</span>
+                        
+                            <span class="n">logging</span><span class="o">.</span><span class="n">infp</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Closing position </span><span class="si">{</span><span class="n">native_position</span><span class="o">.</span><span class="n">symbol</span><span class="si">}</span><span class="s2"> with quantity </span><span class="si">{</span><span class="n">cur_bucket_qty</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                            <span class="c1">#close position</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">close_position_by_id</span><span class="p">(</span><span class="n">native_position</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span> <span class="n">cur_bucket_qty</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">process_latest_order</span><span class="p">():</span>
+                                <span class="k">break</span>
+
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expiry_day</span><span class="p">:</span>
+
+                            <span class="n">now</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+                            <span class="n">expiry_sell_cutoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_session_manager</span><span class="o">.</span><span class="n">trading_end</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">expiry_sell_cutoff</span><span class="p">)</span>
+
+                            <span class="k">if</span> <span class="n">loop_counter</span> <span class="o">%</span> <span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expiry day. Checking if we should close positions. Cutoff time: </span><span class="si">{</span><span class="n">expiry_sell_cutoff</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                            <span class="k">if</span> <span class="n">now</span> <span class="o">&gt;=</span> <span class="n">expiry_sell_cutoff</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">latest_order_pending</span><span class="p">():</span>
+
+                                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Current time </span><span class="si">{</span><span class="n">now</span><span class="si">}</span><span class="s2"> &gt;= expiry cutoff </span><span class="si">{</span><span class="n">expiry_sell_cutoff</span><span class="si">}</span><span class="s2">.&quot;</span>
+                                <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; Closing position </span><span class="si">{</span><span class="n">native_position</span><span class="o">.</span><span class="n">symbol</span><span class="si">}</span><span class="s2"> with quantity </span><span class="si">{</span><span class="n">cur_bucket_qty</span><span class="si">}</span><span class="s2">&quot;</span>
+                                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                            
+                                <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">close_position_by_id</span><span class="p">(</span><span class="n">native_position</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span> <span class="n">cur_bucket_qty</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+                                
+                                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_manager</span><span class="o">.</span><span class="n">process_latest_order</span><span class="p">():</span>
+                                    <span class="k">break</span>
+
+                        <span class="n">loop_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current bucket quantity is </span><span class="si">{</span><span class="n">cur_bucket_qty</span><span class="si">}</span><span class="s2">. Exiting loop.&quot;</span><span class="p">)</span>
+                
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;All positions closed. Only runners left. Terminating...&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Closing all positions&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">close_all_positions</span><span class="p">()</span>
+
+        <span class="k">finally</span><span class="p">:</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;All positions closed. Terminating...&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ExecutionOrchestrator._save_config">
+<a class="viewcode-back" href="../../src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator._save_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save the current configuration to the output directory for audit purposes.</span>
+<span class="sd">        </span>
+<span class="sd">        The configuration is saved with a timestamp in the filename to maintain</span>
+<span class="sd">        a history of configurations used for trading sessions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Create output directory if it doesn&#39;t exist</span>
+        <span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">&quot;output&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># Generate filename with timestamp</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">%m%Y&quot;</span><span class="p">)</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;config_</span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">.cfg&quot;</span>
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="s1">&#39;run.cfg&#39;</span><span class="p">,</span> <span class="n">filepath</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration saved to </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Sajjad Masumi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

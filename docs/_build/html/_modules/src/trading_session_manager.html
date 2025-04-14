@@ -1,0 +1,233 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.trading_session_manager &mdash; Alpaca Options Trading Bot  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Alpaca Options Trading Bot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Python Modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Alpaca Options Trading Bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.trading_session_manager</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.trading_session_manager</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">holidays</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pytz</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+
+<div class="viewcode-block" id="TradingSessionManager">
+<a class="viewcode-back" href="../../src/trading_session_manager.html#src.trading_session_manager.TradingSessionManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TradingSessionManager</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;TradingSessionManager handles the logic for determining valid trading sessions.</span>
+<span class="sd">    </span>
+<span class="sd">    This class is responsible for:</span>
+<span class="sd">    - Managing trading hours and determining if current time is within trading window</span>
+<span class="sd">    - Checking if a given day is a valid trading day (accounting for weekends and holidays)</span>
+<span class="sd">    - Providing timezone-aware session management for consistent trading schedules</span>
+<span class="sd">    - Handling end-of-day market close logic and position management</span>
+<span class="sd">    </span>
+<span class="sd">    The trading session logic handles overnight sessions that span across days,</span>
+<span class="sd">    as well as regular market hour sessions. It accounts for US holidays and</span>
+<span class="sd">    weekend trading restrictions. It also manages the orderly closing of positions</span>
+<span class="sd">    and cancellation of orders as market close approaches.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="TradingSessionManager.__init__">
+<a class="viewcode-back" href="../../src/trading_session_manager.html#src.trading_session_manager.TradingSessionManager.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timezone</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">trading_start_time</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">trading_end_time</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the trading session manager</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            timezone (str): Timezone for trading hours (e.g. &#39;America/New_York&#39;)</span>
+<span class="sd">            trading_start_time (str): Start time in HHMM format (e.g. &#39;2100&#39; for 9:00 PM)</span>
+<span class="sd">            trading_end_time (str): End time in HHMM format (e.g. &#39;1600&#39; for 4:00 PM)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span> <span class="o">=</span> <span class="n">timezone</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_start</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">trading_start_time</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;%H%M&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_end</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">trading_end_time</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;%H%M&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span><span class="o">.</span><span class="n">time</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="TradingSessionManager.is_trading_hours">
+<a class="viewcode-back" href="../../src/trading_session_manager.html#src.trading_session_manager.TradingSessionManager.is_trading_hours">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_trading_hours</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if current time is within trading hours</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            now (pd.Timestamp): Current timestamp to check</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if within trading hours, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TradingSessionManager: Checking trading time. Current timestamp: </span><span class="si">{</span><span class="n">now</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_start</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_end</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_start</span> <span class="o">&lt;=</span> <span class="n">current_time</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_end</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">current_time</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_start</span> <span class="ow">or</span> <span class="n">current_time</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_end</span></div>
+
+            
+<div class="viewcode-block" id="TradingSessionManager.is_trading_day">
+<a class="viewcode-back" href="../../src/trading_session_manager.html#src.trading_session_manager.TradingSessionManager.is_trading_day">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_trading_day</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">now_timestamp</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if today is a trading day (Sunday through Friday)</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            now_timestamp (pd.Timestamp): Current timestamp to check</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if it&#39;s a trading day, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TradingSessionManager: Checking trading day. Current timestamp: </span><span class="si">{</span><span class="n">now_timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">us_holidays</span> <span class="o">=</span> <span class="n">holidays</span><span class="o">.</span><span class="n">UnitedStates</span><span class="p">()</span>
+        <span class="n">weekday</span> <span class="o">=</span> <span class="n">now_timestamp</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">now_timestamp</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="ow">in</span> <span class="n">us_holidays</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        
+        <span class="c1"># Monday through Friday (0-4)</span>
+        <span class="k">elif</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">weekday</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span> </div>
+
+        
+<div class="viewcode-block" id="TradingSessionManager.perform_eod_close">
+<a class="viewcode-back" href="../../src/trading_session_manager.html#src.trading_session_manager.TradingSessionManager.perform_eod_close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">perform_eod_close</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                         <span class="n">now</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> 
+                         <span class="n">eod_exit_time</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+                         <span class="n">market_close_time</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform end of day checks and handle market close procedures.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            now (pd.Timestamp): Current timestamp</span>
+<span class="sd">            eod_exit_time (str): Time to start EOD procedures in HHMM format</span>
+<span class="sd">            market_close_time (str): Market close time in HHMM format</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if EOD procedures were performed, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">eod_cutoff</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
+                <span class="n">now</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> 
+                <span class="n">now</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> 
+                <span class="n">now</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> 
+                <span class="nb">int</span><span class="p">(</span><span class="n">eod_exit_time</span><span class="p">[:</span><span class="mi">2</span><span class="p">]),</span>           
+                <span class="nb">int</span><span class="p">(</span><span class="n">eod_exit_time</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),</span>           
+                <span class="n">tz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+        
+        <span class="n">market_close_time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
+                <span class="n">now</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> 
+                <span class="n">now</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> 
+                <span class="n">now</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> 
+                <span class="nb">int</span><span class="p">(</span><span class="n">market_close_time</span><span class="p">[:</span><span class="mi">2</span><span class="p">]),</span>           
+                <span class="nb">int</span><span class="p">(</span><span class="n">market_close_time</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),</span>           
+                <span class="n">tz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">market_close_time</span> <span class="o">&gt;=</span> <span class="n">now</span> <span class="o">&gt;=</span> <span class="n">eod_cutoff</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current time: </span><span class="si">{</span><span class="n">now</span><span class="si">}</span><span class="s2"> - End of day approaching - Performing EOD checks&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Define EOD logic here</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Currently no EOD checks to perform&quot;</span><span class="p">)</span>
+
+            <span class="n">seconds_until_close</span> <span class="o">=</span> <span class="p">(</span><span class="n">market_close_time</span> <span class="o">-</span> <span class="n">now</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sleeping for </span><span class="si">{</span><span class="n">seconds_until_close</span><span class="si">}</span><span class="s2"> seconds until market close&quot;</span><span class="p">)</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">seconds_until_close</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        
+        <span class="k">return</span> <span class="kc">False</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Sajjad Masumi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

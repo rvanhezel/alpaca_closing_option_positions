@@ -1,0 +1,352 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python Modules &mdash; Alpaca Options Trading Bot  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Configuration Module" href="src/configuration.html" />
+    <link rel="prev" title="Welcome to Alpaca Options Trading Bot’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Alpaca Options Trading Bot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Python Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#core-modules">Core Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/configuration.html">Configuration Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/execution_orchestrator.html">Execution Orchestrator Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/trading_session_manager.html">Trading Session Manager Module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api-modules">API Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/api/api_utils.html">API Utilities Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html">Alpaca API Module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#strategy-modules">Strategy Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/strategys/abstract_strategy.html">Abstract Strategy Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/strategys/take_profit_strategy.html">Take Profit Strategy Module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#market-data-modules">Market Data Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/mkt_data/mkt_data_state.html">Market Data State Module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#portfolio-modules">Portfolio Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/portfolio/portfolio_manager.html">Portfolio Manager Module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#utility-modules">Utility Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html">Enums Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/logger.html">Logger Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/period.html">Period Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/utils.html">Utils Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Alpaca Options Trading Bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Python Modules</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/modules.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="python-modules">
+<h1>Python Modules<a class="headerlink" href="#python-modules" title="Link to this heading"></a></h1>
+<section id="core-modules">
+<h2>Core Modules<a class="headerlink" href="#core-modules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="src/configuration.html">Configuration Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/configuration.html#src.configuration.Configuration"><code class="docutils literal notranslate"><span class="pre">Configuration</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/configuration.html#src.configuration.Configuration.__init__"><code class="docutils literal notranslate"><span class="pre">Configuration.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/configuration.html#src.configuration.Configuration._configure_log"><code class="docutils literal notranslate"><span class="pre">Configuration._configure_log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/configuration.html#src.configuration.Configuration._confirm_paper_trading"><code class="docutils literal notranslate"><span class="pre">Configuration._confirm_paper_trading()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/configuration.html#src.configuration.Configuration._perform_sanity_checks"><code class="docutils literal notranslate"><span class="pre">Configuration._perform_sanity_checks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/configuration.html#src.configuration.Configuration._confirm_sell_buckets"><code class="docutils literal notranslate"><span class="pre">Configuration._confirm_sell_buckets()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/execution_orchestrator.html">Execution Orchestrator Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator"><code class="docutils literal notranslate"><span class="pre">ExecutionOrchestrator</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator.__init__"><code class="docutils literal notranslate"><span class="pre">ExecutionOrchestrator.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator.start"><code class="docutils literal notranslate"><span class="pre">ExecutionOrchestrator.start()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator._trading_session_loop"><code class="docutils literal notranslate"><span class="pre">ExecutionOrchestrator._trading_session_loop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator._trading_execution"><code class="docutils literal notranslate"><span class="pre">ExecutionOrchestrator._trading_execution()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/execution_orchestrator.html#src.execution_orchestrator.ExecutionOrchestrator._save_config"><code class="docutils literal notranslate"><span class="pre">ExecutionOrchestrator._save_config()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/trading_session_manager.html">Trading Session Manager Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/trading_session_manager.html#src.trading_session_manager.TradingSessionManager"><code class="docutils literal notranslate"><span class="pre">TradingSessionManager</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/trading_session_manager.html#src.trading_session_manager.TradingSessionManager.__init__"><code class="docutils literal notranslate"><span class="pre">TradingSessionManager.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/trading_session_manager.html#src.trading_session_manager.TradingSessionManager.is_trading_hours"><code class="docutils literal notranslate"><span class="pre">TradingSessionManager.is_trading_hours()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/trading_session_manager.html#src.trading_session_manager.TradingSessionManager.is_trading_day"><code class="docutils literal notranslate"><span class="pre">TradingSessionManager.is_trading_day()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/trading_session_manager.html#src.trading_session_manager.TradingSessionManager.perform_eod_close"><code class="docutils literal notranslate"><span class="pre">TradingSessionManager.perform_eod_close()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-modules">
+<h2>API Modules<a class="headerlink" href="#api-modules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="src/api/api_utils.html">API Utilities Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/api/api_utils.html#src.api.api_utils.is_expiry_day"><code class="docutils literal notranslate"><span class="pre">is_expiry_day()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/api/api_utils.html#src.api.api_utils.check_options_level"><code class="docutils literal notranslate"><span class="pre">check_options_level()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/api/alpaca_api.html">Alpaca API Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.__init__"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.trading_api"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.trading_api</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.trading_stream"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.trading_stream</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.option_md_stream"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.option_md_stream</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.option_md_api"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.option_md_api</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.connect"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.connect()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI._connect_trading_api"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI._connect_trading_api()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI._connect_trading_websocket"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI._connect_trading_websocket()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI._connect_option_md_websocket"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI._connect_option_md_websocket()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI._connect_option_md_api"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI._connect_option_md_api()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.subscribe_option_md_updates"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.subscribe_option_md_updates()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.subscribe_trade_updates"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.subscribe_trade_updates()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.account_details"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.account_details()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.options_approved_level"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.options_approved_level()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.options_trading_level"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.options_trading_level()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_orders"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.get_orders()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_order_by_id"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.get_order_by_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.place_market_order"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.place_market_order()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.cancel_all_orders"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.cancel_all_orders()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.cancel_order_by_id"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.cancel_order_by_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_all_positions"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.get_all_positions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_open_position_by_id"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.get_open_position_by_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.close_all_positions"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.close_all_positions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.close_position_by_id"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.close_position_by_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_option_contract_by_id"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.get_option_contract_by_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_all_assets"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.get_all_assets()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_us_options"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.get_us_options()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.get_option_contracts"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.get_option_contracts()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/api/alpaca_api.html#src.api.alpaca_api.AlpacaAPI.close_websockets"><code class="docutils literal notranslate"><span class="pre">AlpacaAPI.close_websockets()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="strategy-modules">
+<h2>Strategy Modules<a class="headerlink" href="#strategy-modules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="src/strategys/abstract_strategy.html">Abstract Strategy Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/strategys/abstract_strategy.html#src.strategys.abstract_strategy.AbstractStrategy"><code class="docutils literal notranslate"><span class="pre">AbstractStrategy</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/strategys/abstract_strategy.html#src.strategys.abstract_strategy.AbstractStrategy.generate_signals"><code class="docutils literal notranslate"><span class="pre">AbstractStrategy.generate_signals()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/strategys/take_profit_strategy.html">Take Profit Strategy Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/strategys/take_profit_strategy.html#src.strategys.take_profit_strategy.TakeProfitStrategy"><code class="docutils literal notranslate"><span class="pre">TakeProfitStrategy</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/strategys/take_profit_strategy.html#src.strategys.take_profit_strategy.TakeProfitStrategy.generate_signals"><code class="docutils literal notranslate"><span class="pre">TakeProfitStrategy.generate_signals()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="market-data-modules">
+<h2>Market Data Modules<a class="headerlink" href="#market-data-modules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="src/mkt_data/mkt_data_state.html">Market Data State Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/mkt_data/mkt_data_state.html#src.mkt_data.mkt_data_state.MktDataState"><code class="docutils literal notranslate"><span class="pre">MktDataState</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/mkt_data/mkt_data_state.html#src.mkt_data.mkt_data_state.MktDataState.__init__"><code class="docutils literal notranslate"><span class="pre">MktDataState.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/mkt_data/mkt_data_state.html#src.mkt_data.mkt_data_state.MktDataState.market_data"><code class="docutils literal notranslate"><span class="pre">MktDataState.market_data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/mkt_data/mkt_data_state.html#src.mkt_data.mkt_data_state.MktDataState.update_state"><code class="docutils literal notranslate"><span class="pre">MktDataState.update_state()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/mkt_data/mkt_data_state.html#src.mkt_data.mkt_data_state.MktDataState.update_quote_data"><code class="docutils literal notranslate"><span class="pre">MktDataState.update_quote_data()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/mkt_data/mkt_data_state.html#src.mkt_data.mkt_data_state.MktDataState.latest_quote"><code class="docutils literal notranslate"><span class="pre">MktDataState.latest_quote()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/mkt_data/mkt_data_state.html#src.mkt_data.mkt_data_state.MktDataState._save_market_data"><code class="docutils literal notranslate"><span class="pre">MktDataState._save_market_data()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="portfolio-modules">
+<h2>Portfolio Modules<a class="headerlink" href="#portfolio-modules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="src/portfolio/portfolio_manager.html">Portfolio Manager Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager"><code class="docutils literal notranslate"><span class="pre">PortfolioManager</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.__init__"><code class="docutils literal notranslate"><span class="pre">PortfolioManager.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.starting_idx"><code class="docutils literal notranslate"><span class="pre">PortfolioManager.starting_idx</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.close_position_by_id"><code class="docutils literal notranslate"><span class="pre">PortfolioManager.close_position_by_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.process_latest_order"><code class="docutils literal notranslate"><span class="pre">PortfolioManager.process_latest_order()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.latest_order_pending"><code class="docutils literal notranslate"><span class="pre">PortfolioManager.latest_order_pending()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.populate_from_csv"><code class="docutils literal notranslate"><span class="pre">PortfolioManager.populate_from_csv()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.update_order_status"><code class="docutils literal notranslate"><span class="pre">PortfolioManager.update_order_status()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.update_trade_data"><code class="docutils literal notranslate"><span class="pre">PortfolioManager.update_trade_data()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/portfolio/portfolio_manager.html#src.portfolio.portfolio_manager.PortfolioManager.wait_for_order_response"><code class="docutils literal notranslate"><span class="pre">PortfolioManager.wait_for_order_response()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="utility-modules">
+<h2>Utility Modules<a class="headerlink" href="#utility-modules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="src/utilities/enums.html">Enums Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.Signal"><code class="docutils literal notranslate"><span class="pre">Signal</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.Signal.BUY"><code class="docutils literal notranslate"><span class="pre">Signal.BUY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.Signal.SELL"><code class="docutils literal notranslate"><span class="pre">Signal.SELL</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.Signal.HOLD"><code class="docutils literal notranslate"><span class="pre">Signal.HOLD</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.OrderType"><code class="docutils literal notranslate"><span class="pre">OrderType</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.OrderType.LIMIT"><code class="docutils literal notranslate"><span class="pre">OrderType.LIMIT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.OrderType.MARKET"><code class="docutils literal notranslate"><span class="pre">OrderType.MARKET</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.Exchange"><code class="docutils literal notranslate"><span class="pre">Exchange</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.Exchange.NYSE"><code class="docutils literal notranslate"><span class="pre">Exchange.NYSE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.Exchange.NASDAQ"><code class="docutils literal notranslate"><span class="pre">Exchange.NASDAQ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.Exchange.CRYPTO"><code class="docutils literal notranslate"><span class="pre">Exchange.CRYPTO</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.Exchange.EMPTY"><code class="docutils literal notranslate"><span class="pre">Exchange.EMPTY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.Exchange.UNKNOWN"><code class="docutils literal notranslate"><span class="pre">Exchange.UNKNOWN</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.PositionDirection"><code class="docutils literal notranslate"><span class="pre">PositionDirection</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.PositionDirection.SHORT"><code class="docutils literal notranslate"><span class="pre">PositionDirection.SHORT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/enums.html#src.utilities.enums.PositionDirection.LONG"><code class="docutils literal notranslate"><span class="pre">PositionDirection.LONG</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/utilities/logger.html">Logger Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/logger.html#src.utilities.logger.Logger"><code class="docutils literal notranslate"><span class="pre">Logger</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/logger.html#src.utilities.logger.Logger.__init__"><code class="docutils literal notranslate"><span class="pre">Logger.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/utilities/period.html">Period Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/period.html#src.utilities.period.Period"><code class="docutils literal notranslate"><span class="pre">Period</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src/utilities/period.html#src.utilities.period.Period.__init__"><code class="docutils literal notranslate"><span class="pre">Period.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/utilities/utils.html">Utils Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.quantity_buckets"><code class="docutils literal notranslate"><span class="pre">quantity_buckets()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.get_third_friday"><code class="docutils literal notranslate"><span class="pre">get_third_friday()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.load_config"><code class="docutils literal notranslate"><span class="pre">load_config()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.split_tenor_string"><code class="docutils literal notranslate"><span class="pre">split_tenor_string()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.calc_intraday_time_points"><code class="docutils literal notranslate"><span class="pre">calc_intraday_time_points()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.timezone_from_calendar"><code class="docutils literal notranslate"><span class="pre">timezone_from_calendar()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.market_open"><code class="docutils literal notranslate"><span class="pre">market_open()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.Period"><code class="docutils literal notranslate"><span class="pre">Period</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.shift_date_by_period"><code class="docutils literal notranslate"><span class="pre">shift_date_by_period()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.trading_day_start_time_ts"><code class="docutils literal notranslate"><span class="pre">trading_day_start_time_ts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/utilities/utils.html#src.utilities.utils.get_local_timezone"><code class="docutils literal notranslate"><span class="pre">get_local_timezone()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Alpaca Options Trading Bot’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src/configuration.html" class="btn btn-neutral float-right" title="Configuration Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
